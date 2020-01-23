@@ -1,0 +1,260 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어(대한민국) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 213, 199
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Amano Detector"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,149,21,20
+    LTEXT           "Amano Detector, Version 1.0",IDC_STATIC,42,149,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (c) 2019",IDC_STATIC,42,161,114,8
+    DEFPUSHBUTTON   "OK",IDOK,156,178,50,14,WS_GROUP
+    LTEXT           "m: mode",IDC_STATIC,14,14,142,8,SS_NOPREFIX
+    LTEXT           "r: reset",IDC_STATIC,15,56,142,8,SS_NOPREFIX
+    LTEXT           "x, z: zoom in, out",IDC_STATIC,15,66,142,8,SS_NOPREFIX
+    LTEXT           "q, e: rotate left, right",IDC_STATIC,15,76,142,8,SS_NOPREFIX
+    LTEXT           "w, a, s, d: move center",IDC_STATIC,15,86,142,8,SS_NOPREFIX
+    LTEXT           "1, 2: scale focal length",IDC_STATIC,15,96,142,8,SS_NOPREFIX
+    LTEXT           "3, 4: aspect ratio",IDC_STATIC,15,106,142,8,SS_NOPREFIX
+    LTEXT           "Normal mode",IDC_STATIC,20,24,142,8,SS_NOPREFIX
+    LTEXT           "Cylinder mode",IDC_STATIC,20,33,142,8,SS_NOPREFIX
+    LTEXT           "Cylinder mode (theta projection)",IDC_STATIC,20,43,142,8,SS_NOPREFIX
+    LTEXT           "5: warp이미지 밑부분 상하반전",IDC_STATIC,15,117,142,8,SS_NOPREFIX
+    LTEXT           "6.mobilenet, 7.Y검지, 8.둘다인식",IDC_STATIC,16,127,142,8,SS_NOPREFIX
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 206
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 192
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // 한국어(대한민국) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 영어(미국) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 213, 199
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Amano Detector"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,149,21,20
+    LTEXT           "Amano Detector, Version 1.0",IDC_STATIC,42,149,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (c) 2019",IDC_STATIC,42,161,114,8
+    DEFPUSHBUTTON   "OK",IDOK,156,178,50,14,WS_GROUP
+    LTEXT           "m: mode",IDC_STATIC,14,14,142,8,SS_NOPREFIX
+    LTEXT           "r: reset",IDC_STATIC,15,56,142,8,SS_NOPREFIX
+    LTEXT           "x, z: zoom in, out",IDC_STATIC,15,66,142,8,SS_NOPREFIX
+    LTEXT           "q, e: rotate left, right",IDC_STATIC,15,76,142,8,SS_NOPREFIX
+    LTEXT           "w, a, s, d: move center",IDC_STATIC,15,86,142,8,SS_NOPREFIX
+    LTEXT           "1, 2: scale focal length",IDC_STATIC,15,96,142,8,SS_NOPREFIX
+    LTEXT           "3, 4: aspect ratio",IDC_STATIC,15,106,142,8,SS_NOPREFIX
+    LTEXT           "Normal mode",IDC_STATIC,20,24,142,8,SS_NOPREFIX
+    LTEXT           "Cylinder mode",IDC_STATIC,20,33,142,8,SS_NOPREFIX
+    LTEXT           "Cylinder mode (theta projection)",IDC_STATIC,20,43,142,8,SS_NOPREFIX
+    LTEXT           "5: warp??? ??? ????",IDC_STATIC,15,117,142,8,SS_NOPREFIX
+    LTEXT           "6.mobilenet, 7.Y??, 8.????",IDC_STATIC,16,127,142,8,SS_NOPREFIX
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 206
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 192
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_DETECTORICO         ICON                    "detector.ico"
+
+IDI_SMALL               ICON                    "small.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_DETECTOR MENUEX
+BEGIN
+    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Open",                        ID_FILE_OPEN,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Save",                        ID_FILE_SAVE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load",                        ID_FILE_LOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "E&xit",                       IDM_EXIT,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Detect",                        65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Load model",                  ID_DETECT_LOAD,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
+        MENUITEM "Save",                        ID_DETECT_SAVE,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Inference(&I)",               ID_DETECT_INFERENCE,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "Parking",                        65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Load Model",                  ID_PARKING_START,MFT_STRING,MFS_ENABLED
+        MENUITEM "Draw (ready)",                ID_PARKING_DRAW,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Save",                        ID_PARKING_SAVE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load",                        ID_PARKING_LOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Inference",                   ID_PARKING_INFERENCE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Clear",                       ID_PARKING_CLEAR,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "&About ...",                  IDM_ABOUT,MFT_STRING,MFS_ENABLED
+    END
+    MENUITEM MFT_SEPARATOR
+    MENUITEM "Center: (0, 0)",              ID_CENTER,MFT_STRING,MFS_GRAYED
+    MENUITEM "F: (0, 0)",                   ID_F,MFT_STRING,MFS_GRAYED
+    MENUITEM "CV: (0, 0, 0)",               ID_CV,MFT_STRING,MFS_GRAYED
+    MENUITEM "UV: (0, 0, 0)",               ID_UV,MFT_STRING,MFS_GRAYED
+    MENUITEM "RV: (0, 0, 0)",               ID_RV,MFT_STRING,MFS_GRAYED
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_DETECTOR ACCELERATORS
+BEGIN
+    "?",            IDM_ABOUT,              ASCII,  ALT
+    "/",            IDM_ABOUT,              ASCII,  ALT
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE           "detector"
+    IDC_DETECTOR            "DETECTOR"
+END
+
+#endif    // 영어(미국) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
