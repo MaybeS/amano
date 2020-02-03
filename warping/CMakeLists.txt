@@ -21,13 +21,12 @@ if (APPLE)
     ADD_DEFINITIONS(-DAPPLE)
 endif (APPLE)
 
-SET(OpenCV_DIR "$ENV{CV_HOME}/lib/cmake/opencv4/")
 FIND_PACKAGE(OpenCV REQUIRED)
 
 INCLUDE_DIRECTORIES(${SRC_DIR})
 INCLUDE_DIRECTORIES(.)
 
-ADD_EXECUTABLE(${PROJECT_NAME} main.cc lib/calib.h lib/warp.h lib/utility.h lib/slider.h)
+ADD_EXECUTABLE(${PROJECT_NAME} main.cc lib/calib.h lib/warp.h lib/utility.h lib/slider.h lib/argparse.hpp)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${OpenCV_LIBS} pthread)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} stdc++fs)
 
