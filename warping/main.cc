@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
         if (name.empty())
             continue;
 
-        Mat image = imread(entry.path(), 1);
+        Mat image = imread(entry.path().string(), 1);
 
         Calibration calib(image.size());
         Warp warp(calib, output_size, 2);
