@@ -149,7 +149,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\utility\opencv\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\utility\opencv\opencv-4.2.0\include;C:\utility\opencv\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

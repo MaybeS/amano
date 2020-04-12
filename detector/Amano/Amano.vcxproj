@@ -81,7 +81,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\KJH\LIBRARY\libtorch-win-shared-with-deps-1.3.1\libtorch\include;C:\utility\opencv\opencv\include;C:\utility\libtorch-release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\KJH\LIBRARY\libtorch-win-shared-with-deps-1.3.1\libtorch\include;C:\utility\opencv\opencv\include;C:\utility\libtorch\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DETECTOR_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -89,7 +89,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>opencv_world411.lib;torch.lib;c10.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\x64\vc15\lib;C:\KJH\LIBRARY\libtorch-win-shared-with-deps-1.3.1\libtorch\lib;C:\utility\opencv\opencv\x64\vc16\lib;C:\utility\libtorch-release\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\x64\vc15\lib;C:\KJH\LIBRARY\libtorch-win-shared-with-deps-1.3.1\libtorch\lib;C:\utility\opencv\opencv\x64\vc16\lib;C:\utility\libtorch\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

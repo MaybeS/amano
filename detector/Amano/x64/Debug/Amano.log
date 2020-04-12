@@ -1,0 +1,5 @@
+﻿  detector-dll.cpp
+C:\Users\maybe\Documents\Workspace\amano\detector\Amano\detector-dll.h(3,10): fatal error C1083: Cannot open include file: 'torch/script.h': No such file or directory
+  utility.cpp
+C:\Users\maybe\Documents\Workspace\amano\detector\Amano\utility.hpp(3,10): fatal error C1083: Cannot open include file: 'torch/script.h': No such file or directory
+  Generating Code...
