@@ -3,26 +3,27 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 
-#ifdef DETECTOR_EXPORT
-#define DETECTOR_API __declspec(dllexport)
+#ifdef BUILD_DLL
+#define LIB_DETECTION __declspec(dllexport)
 #else
-#define DETECTOR_API __declspec(dllimport)
+#define LIB_DETECTION __declspec(dllimport)
 #endif
 
-struct MNBoxT {
+struct Box {
 	float x, y, w, h;
 	float prob;
-	unsigned int  obj_id;
-	unsigned int  track_id;
-	unsigned int  frames_counter;
+	unsigned int obj_id;
+	unsigned int track_id;
+	unsigned int frames_counter;
 };
-class DETECTOR_API MNHandle;
 
-extern "C" DETECTOR_API MNHandle * _stdcall MN_Init(const char* filename, int AGpu);
-extern "C" DETECTOR_API long _stdcall MN_Dispose(MNHandle * AHanlde);
-extern "C" DETECTOR_API int _stdcall MN_Classify(MNHandle * AHandle, const cv::Mat & AImage);
-extern "C" DETECTOR_API std::vector<MNBoxT> * _stdcall MN_Detect(MNHandle * AHandle, cv::Mat & AImage);
-extern "C" DETECTOR_API std::vector<MNBoxT> * _stdcall MN_detect_Image(MNHandle * AHanlde, const char* filename);
-extern "C" DETECTOR_API std::vector<MNBoxT> * _stdcall MN_detect_Mat(MNHandle * AHandle, unsigned char* pArray, int nArraySize);
-extern "C" DETECTOR_API long _stdcall MN_SetParam(MNHandle * AHandle, int DSize_W = 0, int DSize_H = 0, float AConfidenceThreshold = .0f, float ARefineThreshold = .0f);
-extern "C" DETECTOR_API long _stdcall MN_GetObjectString(int AObj_idx, char* AObjName, int AObjSize);
+class LIB_DETECTION Detector;
+
+extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, int AGpu);
+extern "C" LIB_DETECTION long _stdcall DetectorRelease(Detector * AHanlde);
+extern "C" LIB_DETECTION int _stdcall DetectorClassify(Detector * AHandle, const cv::Mat & AImage);
+extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetect(Detector * AHandle, cv::Mat & AImage, bool refine = true);
+extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetectImage(Detector * AHanlde, const char* filename);
+extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetectMat(Detector * AHandle, unsigned char* pArray, int nArraySize);
+extern "C" LIB_DETECTION long _stdcall DetectorSetParam(Detector * AHandle, int DSize_W = 0, int DSize_H = 0, float AConfidenceThreshold = .0f, float ARefineThreshold = .0f);
+extern "C" LIB_DETECTION long _stdcall DetectorGetObjectString(int AObj_idx, char* AObjName, int AObjSize);

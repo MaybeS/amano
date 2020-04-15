@@ -4,14 +4,16 @@
 
 #include "resource.h"
 #include "framework.h"
-#include "detector.h"
 
-#include "acognitive_post_def.h"
-
-#include "lib/warp.hpp"
-
+#include <vector>
 #include <iostream>
 #include <fstream>
+
+#include "acognitive_post_def.h"
+#include "LibDetector.h"
+#include "LibWarping.h"
+
+using namespace std;
 
 #define MAX_LOADSTRING 100
 
@@ -29,9 +31,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 //
 //   FUNCTION: GUI utility
 //
-MNHandle* g_Detector = nullptr;
-std::vector<MNBoxT>* results = nullptr;
-std::vector<MNBoxT>* Yresults = nullptr;
+Detector* g_Detector = nullptr;
+std::vector<Box>* results = nullptr;
+std::vector<Box>* Yresults = nullptr;
 
 
 cv::Size shape_raw{ 1536, 2048 };
@@ -50,7 +52,7 @@ cv::Mat image_show;
 Calibration* calib = NULL;
 Warp* warp = NULL;
 
-MNHandle* g_Classifier = nullptr;
+Detector* g_Classifier = nullptr;
 BOOL	g_ParkingEvent = FALSE;
 int		gX = 0, gY = 0;
 std::vector<std::tuple<float, float ,float, float>> g_Parkings;
@@ -196,7 +198,7 @@ void redraw(HWND hWnd, bool inference = false) {
 	}
 
 	if (inference && g_Detector) {
-		results = MN_Detect(g_Detector, *ground_resized);
+		results = DetectorDetect(g_Detector, *ground_resized);
 	}
 
 	image_map = new Gdiplus::Bitmap(
@@ -285,8 +287,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		resizeImage(image->cols, image->rows);
 		resizeWindow(image->cols, image->rows);
 
-		calib = new Calibration(shape_raw);
-		warp = new Warp(*calib, shape_window);
+		calib = CalibrationInit(shape_raw);
+		warp = WarpInit(*calib, shape_window);
 
 		// Load calib config sequentialy
 		int len = strlen(openFileDialog.lpstrFile);
@@ -397,7 +399,7 @@ long _stdcall RequestImageCallBack(TRequestImage* AImageResult, WPARAM wParam)
 	int tSize = AImageResult->m_ResultCount;
 
 	if (tSize > 0 && !Yresults)
-		Yresults = new std::vector<MNBoxT>;
+		Yresults = new std::vector<Box>;
 	if (Yresults) Yresults->clear();
 
 	for (int i = 0; i < tSize; i++)
@@ -406,7 +408,7 @@ long _stdcall RequestImageCallBack(TRequestImage* AImageResult, WPARAM wParam)
 
 		if (Yresults)
 		{
-			MNBoxT tPushBox;
+			Box tPushBox;
 			tPushBox.x = tBbox.x;
 			tPushBox.y = tBbox.y;
 			tPushBox.w = tBbox.w;
@@ -487,10 +489,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			g_ApHandle = ap_Init(RequestImageCallBack, (WPARAM)0);
 
 			if (g_Detector != nullptr) {
-				MN_Dispose(g_Detector);
+				DetectorRelease(g_Detector);
 			}
 
-			g_Detector = MN_Init("./bin/amano-script.pt", 0);
+			g_Detector = DetectorInit("./bin/amano-script.pt", 0);
 
 			// acogurl.txt
 			FILE* tf = fopen("acogurl.txt", "rt");
@@ -530,10 +532,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_DETECT_LOAD:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
 					if (g_Detector != nullptr) {
-						MN_Dispose(g_Detector);
+						DetectorRelease(g_Detector);
 					}
 
-					g_Detector = MN_Init(openFileDialog.lpstrFile, 0);
+					g_Detector = DetectorInit(openFileDialog.lpstrFile, 0);
 				});
 				break;
 			case ID_DETECT_INFERENCE:
@@ -565,8 +567,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					image = new cv::Mat(cv::imread(string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
 					ground = new cv::Mat();
 
-					resizeImage(image->cols, image->rows);
-					resizeWindow(image->cols, image->rows);
+					//resizeImage(image->cols, image->rows);
+					//resizeWindow(image->cols, image->rows);
 					SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height, SWP_NOMOVE | SWP_NOREPOSITION);
 					UpdateWindow(hWnd);
 					// Load calib config sequentialy
@@ -638,11 +640,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_PARKING_START:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
 					if (g_Classifier != nullptr) {
-						MN_Dispose(g_Classifier);
+						DetectorRelease(g_Classifier);
 					}
 
-					g_Classifier = MN_Init(openFileDialog.lpstrFile, 0);
-					MN_SetParam(g_Classifier, 224, 224);
+					g_Classifier = DetectorInit(openFileDialog.lpstrFile, 0);
+					DetectorSetParam(g_Classifier, 224, 224);
 				});
 				break;
 			case ID_PARKING_DRAW:
@@ -719,7 +721,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							cv::flip(*crop, *crop, 0);
 						}
 
-						g_ParkingResults.push_back(MN_Classify(g_Classifier, *crop));
+						g_ParkingResults.push_back(DetectorClassify(g_Classifier, *crop));
 					}
 				}
 				redraw(hWnd);

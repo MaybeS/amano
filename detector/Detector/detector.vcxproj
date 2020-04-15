@@ -130,12 +130,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\utility\opencv\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\x64\vc15\lib;C:\utility\opencv\opencv\x64\vc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world411.lib;acognitive_post.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -149,7 +152,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\utility\opencv\opencv-4.2.0\include;C:\utility\opencv\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\include;C:\utility\opencv\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -157,20 +160,17 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\x64\vc15\lib;C:\utility\opencv\opencv\x64\vc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world411.lib;acognitive_post.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world411.lib;acognitive_post.lib;LibDetection.lib;LibWarping.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="detector.h" />
+    <ClInclude Include="LibDetector.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="lib\calib.hpp" />
-    <ClInclude Include="lib\utility.hpp" />
-    <ClInclude Include="lib\warp.hpp" />
+    <ClInclude Include="LibWarping.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\utility.cpp" />
     <ClCompile Include="detector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -179,11 +179,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="detector.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Amano\Amano.vcxproj">
-      <Project>{32386df7-2c81-479f-8e07-52ee5c5214de}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

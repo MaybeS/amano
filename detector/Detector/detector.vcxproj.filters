@@ -10,16 +10,10 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\utility.hpp">
+    <ClInclude Include="LibDetector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\warp.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\calib.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="detector.h">
+    <ClInclude Include="LibWarping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -48,9 +42,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\utility.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="detector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

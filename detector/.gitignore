@@ -1,0 +1,7 @@
+.vs/
+Test/
+x64/
+Win32/
+
+*.lib
+*/bin/*

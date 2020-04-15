@@ -1,9 +1,0 @@
-LIBRARY
-
-EXPORTS
-	MN_Init					@1
-	MN_Dispose				@2
-	MN_detect_Image			@3
-	MN_detect_Mat			@4
-	MN_SetParam				@5
-	MN_GetObjectString		@6
