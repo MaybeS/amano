@@ -18,7 +18,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 한국어(대한민국) resources
+// Korean (Korea) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
 LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
@@ -71,12 +71,12 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // 한국어(대한민국) resources
+#endif    // Korean (Korea) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 영어(미국) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -164,6 +164,7 @@ BEGIN
         MENUITEM "Save",                        ID_DETECT_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Inference(&I)",               ID_DETECT_INFERENCE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Inference (1600x300)",        ID_DETECT_INFERENCE_ASPECT,MFT_STRING,MFS_ENABLED
     END
     POPUP "Parking",                        65535,MFT_STRING,MFS_ENABLED
     BEGIN
@@ -243,7 +244,7 @@ BEGIN
     IDC_DETECTOR            "DETECTOR"
 END
 
-#endif    // 영어(미국) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

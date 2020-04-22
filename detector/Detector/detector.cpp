@@ -10,7 +10,7 @@
 #include <fstream>
 
 #include "acognitive_post_def.h"
-#include "LibDetector.h"
+#include "LibDetection.h"
 #include "LibWarping.h"
 
 using namespace std;
@@ -181,7 +181,7 @@ void indicator(HWND hWnd) {
 	DrawMenuBar(hWnd);
 }
 
-void redraw(HWND hWnd, bool inference = false) {
+void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 	warp->Map(*image, ground);
 
 	image->copyTo(*image_resized);
@@ -197,14 +197,46 @@ void redraw(HWND hWnd, bool inference = false) {
 		cv::imwrite("pimg_1.jpg", *ground_resized);
 	}
 
+	std::ofstream out("test.txt", fstream::app);
+	out << "Detector start" << std::endl;
+	out << std::fixed << shape_ground.width << ", " << shape_ground.height << std::endl;
+
 	if (inference && g_Detector) {
-		results = DetectorDetect(g_Detector, *ground_resized);
+		if (aspect) {
+			out << "inference aspect" << std::endl;
+			DetectorSetParam(g_Detector, 1600, 300);
+			int width = shape_ground.width;
+			int height = shape_ground.height;
+
+			cv::Mat up = (*ground_resized)(cv::Rect{ 0, 0, width, (int)(height / 3)});
+			cv::Mat down, down_ = (*ground_resized)(cv::Rect{ 0, (int)(height * 2 / 3), width, (int)(height / 3)});
+			cv::flip(down_, down, 0);
+
+			results = new vector<Box>();
+			for (const auto& element : *DetectorDetect(g_Detector, up)) {
+				results->emplace_back(element);
+			}
+			for (auto& element : *DetectorDetect(g_Detector, down)) {
+				element.y = height - element.y - element.h;
+				results->emplace_back(element);
+			}
+
+
+		} else {
+			out << "inference" << std::endl;
+			DetectorSetParam(g_Detector, 300, 300);
+			results = DetectorDetect(g_Detector, *ground_resized);
+		}
 	}
+
+	out << shape_image.width << ", " << shape_image.height << std::endl;
 
 	image_map = new Gdiplus::Bitmap(
 		shape_image.width, shape_image.height, image_resized->step1(),
 		PixelFormat24bppRGB, image_resized->data);
-	
+
+	out << image_map->GetWidth() << ", " << image_map->GetHeight() << std::endl;
+
 	ground_resized->copyTo(image_show);
 	if (results != nullptr) {
 		for (auto box : *results) {
@@ -246,11 +278,15 @@ void redraw(HWND hWnd, bool inference = false) {
 		}, color, 2);
 	}
 
+	out << shape_ground.width << ", " << shape_ground.height << std::endl;
+
 	ground_map = new Gdiplus::Bitmap(
 		shape_ground.width, shape_ground.height, image_show.step1(),
 		PixelFormat24bppRGB, image_show.data);
 	
+	out << ground_map->GetWidth() << ", " << ground_map->GetHeight() << std::endl;
 
+	out.close();
 	InvalidateRect(hWnd, NULL, NULL);
 }
 //
@@ -539,6 +575,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				});
 				break;
 			case ID_DETECT_INFERENCE:
+			case ID_DETECT_INFERENCE_ASPECT:
 				{
 					if (g_Detector == nullptr)
 						break;
@@ -546,7 +583,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (results != nullptr)
 						delete results;
 
-					redraw(hWnd, true);
+					redraw(hWnd, true, wmId == ID_DETECT_INFERENCE_ASPECT);
 				}
 				break;
 			case ID_DETECT_SAVE:

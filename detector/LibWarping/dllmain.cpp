@@ -8,7 +8,6 @@ Calibration::Calibration(const Size& input_sz) :
 	this->fx = this->fy = 0.34f * input_sz.height;
 	this->cx = input_sz.width / 2.f, this->cy = input_sz.height / 2.f;
 	this->k[0] = -.25f; this->k[1] = -.0; this->k[2] = -.0; this->k[3] = -.0; this->k[4] = -.0;
-
 	this->k[0] = .0715f;
 	this->k[1] = -.0715;
 	this->fisheye = true;

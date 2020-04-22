@@ -10,10 +10,10 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LibDetector.h">
+    <ClInclude Include="LibWarping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LibWarping.h">
+    <ClInclude Include="..\..\amano\detector\Detector\LibDetector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

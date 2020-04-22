@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++에서 생성한 포함 파일입니다.
-// detector.rc에서 사용되고 있습니다.
+// Microsoft Visual C++ generated include file.
+// Used by detector.rc
 //
 #define IDC_MYICON                      2
 #define IDD_DETECTOR_DIALOG             102
@@ -38,6 +38,7 @@
 #define ID_PARKING_START32792           32792
 #define ID_PARKING_DRAW                 32793
 #define ID_PARKING_INFERENCE            32794
+#define ID_DETECT_INFERENCE_ASPECT      32795
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -46,7 +47,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32795
+#define _APS_NEXT_COMMAND_VALUE         32797
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
