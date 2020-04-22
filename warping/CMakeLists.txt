@@ -26,7 +26,7 @@ FIND_PACKAGE(OpenCV REQUIRED)
 INCLUDE_DIRECTORIES(${SRC_DIR})
 INCLUDE_DIRECTORIES(.)
 
-ADD_EXECUTABLE(${PROJECT_NAME} main.cc lib/calib.h lib/warp.h lib/utility.h lib/slider.h lib/argparse.hpp)
+ADD_EXECUTABLE(${PROJECT_NAME} main.cc lib/argparse.hpp lib/libWarping.h lib/libWarping.cpp lib/libWarpingUtility.h lib/libWarpingUtility.cpp lib/pool.h)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${OpenCV_LIBS} pthread)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} stdc++fs)
 
