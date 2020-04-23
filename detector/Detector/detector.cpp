@@ -197,13 +197,8 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 		cv::imwrite("pimg_1.jpg", *ground_resized);
 	}
 
-	std::ofstream out("test.txt", fstream::app);
-	out << "Detector start" << std::endl;
-	out << std::fixed << shape_ground.width << ", " << shape_ground.height << std::endl;
-
 	if (inference && g_Detector) {
 		if (aspect) {
-			out << "inference aspect" << std::endl;
 			DetectorSetParam(g_Detector, 1600, 300);
 			int width = shape_ground.width;
 			int height = shape_ground.height;
@@ -223,19 +218,14 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 
 
 		} else {
-			out << "inference" << std::endl;
 			DetectorSetParam(g_Detector, 300, 300);
 			results = DetectorDetect(g_Detector, *ground_resized);
 		}
 	}
 
-	out << shape_image.width << ", " << shape_image.height << std::endl;
-
 	image_map = new Gdiplus::Bitmap(
 		shape_image.width, shape_image.height, image_resized->step1(),
 		PixelFormat24bppRGB, image_resized->data);
-
-	out << image_map->GetWidth() << ", " << image_map->GetHeight() << std::endl;
 
 	ground_resized->copyTo(image_show);
 	if (results != nullptr) {
@@ -278,15 +268,10 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 		}, color, 2);
 	}
 
-	out << shape_ground.width << ", " << shape_ground.height << std::endl;
-
 	ground_map = new Gdiplus::Bitmap(
 		shape_ground.width, shape_ground.height, image_show.step1(),
 		PixelFormat24bppRGB, image_show.data);
 	
-	out << ground_map->GetWidth() << ", " << ground_map->GetHeight() << std::endl;
-
-	out.close();
 	InvalidateRect(hWnd, NULL, NULL);
 }
 //
