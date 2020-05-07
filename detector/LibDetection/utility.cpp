@@ -2,7 +2,7 @@
 
 template <typename scalar_t>
 at::Tensor nms_kernel(const at::Tensor& boxes, const at::Tensor& scores, const float threshold) {
-	AT_ASSERTM(boxes.type() == scores.type(), "boxes should have the same type as scores");
+	AT_ASSERTM(boxes.scalar_type() == scores.scalar_type(), "boxes should have the same type as scores");
 
 	if (boxes.numel() == 0) {
 		return at::empty({ 0 }, boxes.options().dtype(at::kLong));

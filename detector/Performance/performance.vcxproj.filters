@@ -20,10 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="detector.h">
+    <ClInclude Include="timer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="timer.h">
+    <ClInclude Include="LibDetector.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

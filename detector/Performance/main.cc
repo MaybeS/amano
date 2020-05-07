@@ -1,26 +1,18 @@
 #include <string>
 #include <vector>
 
-#include "detector.h"
+#include "LibDetector.h"
 #include "timer.h"
 
-const std::string IMAGE{ "./bin/test.jpg" };
+const std::string IMAGE{ "../../testset/images/source.jpg" };
+const std::string MODEL{ "../../testset/SSD-VGG16-mAP95.pt" };
 
 int main() {
-	Detector* mHandle = nullptr;
-	cv::Mat image;
-	int results = 0;
+	cv::Mat image = cv::imread(IMAGE);
+	Detector* mHandle = DetectorInit(MODEL.c_str(), 1);
+	DetectorSetParam(mHandle, 300, 300);
 
-	measure<>::logging(measure<>::execution([&image]() {
-		image = cv::imread(IMAGE);
-	}), "Image read");
-
-	measure<>::logging(measure<>::execution([&mHandle]() {
-		mHandle = DetectorInit("./bin/amano-mb2-128.pt", 0);
-		DetectorSetParam(mHandle, 128, 128);
-	}), "MN Init");
-
-	measure<>::logging(measure<>::execution([&mHandle, &image, &results]() {
-		results = DetectorClassify(mHandle, image);
+	measure<>::logging(measure<>::execution([&mHandle, &image]() {
+		auto results = DetectorDetect(mHandle, image);
 	}), "MN Detection");
 }

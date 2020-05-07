@@ -513,7 +513,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				DetectorRelease(g_Detector);
 			}
 
-			g_Detector = DetectorInit("./bin/amano-script.pt", 0);
+			g_Detector = DetectorInit("./bin/amano-script.pt");
 
 			// acogurl.txt
 			FILE* tf = fopen("acogurl.txt", "rt");
@@ -556,7 +556,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						DetectorRelease(g_Detector);
 					}
 
-					g_Detector = DetectorInit(openFileDialog.lpstrFile, 0);
+					g_Detector = DetectorInit(openFileDialog.lpstrFile);
 				});
 				break;
 			case ID_DETECT_INFERENCE:
@@ -665,7 +665,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						DetectorRelease(g_Classifier);
 					}
 
-					g_Classifier = DetectorInit(openFileDialog.lpstrFile, 0);
+					g_Classifier = DetectorInit(openFileDialog.lpstrFile);
 					DetectorSetParam(g_Classifier, 224, 224);
 				});
 				break;

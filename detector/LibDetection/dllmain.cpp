@@ -3,11 +3,21 @@
 const std::string CLASSES[] = { "background", "car" };
 
 
-extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, int AGpu) {
+LIB_DETECTION bool _stdcall DetectorDevice()
+{
+	return torch::hasCUDA();
+}
+
+
+LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, bool cuda) {
 	Detector* handle = new Detector;
 
 	try {
 		handle->network = torch::jit::load(filename);
+
+		if (cuda || torch::hasCUDA()) {
+			handle->network.to(at::kCUDA);
+		}
 		handle->network.eval();
 	}
 	catch (const c10::Error& e) {

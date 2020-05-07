@@ -13,7 +13,7 @@
     <ClInclude Include="LibWarping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\amano\detector\Detector\LibDetector.h">
+    <ClInclude Include="LibDetection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

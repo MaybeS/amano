@@ -19,7 +19,7 @@ struct LIB_DETECTION Box {
 
 class LIB_DETECTION Detector;
 
-extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, int AGpu);
+extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, bool cuda = 0);
 extern "C" LIB_DETECTION long _stdcall DetectorRelease(Detector * AHanlde);
 extern "C" LIB_DETECTION int _stdcall DetectorClassify(Detector * AHandle, const cv::Mat & AImage);
 extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetect(Detector * AHandle, cv::Mat & AImage, bool refine = true);
