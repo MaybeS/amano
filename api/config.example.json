@@ -1,0 +1,15 @@
+{
+    "PATH": {
+        "module": "SSD",
+        "module_path": "SSD",
+        "model_file": "ssd/model.py",
+        "model_name": "SSD300",
+        "weight": "model.pth"
+    },
+    "RUN": {
+        "host": "0.0.0.0",
+        "port": 6888,
+        "debug": false,
+        "threaded": true
+    }
+}
