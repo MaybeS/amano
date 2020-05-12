@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include <torch/script.h>
 #include <opencv2/opencv.hpp>
 
@@ -22,15 +25,18 @@ struct LIB_DETECTION Box {
 class LIB_DETECTION Detector {
 public:
 	torch::jit::script::Module network;
+	torch::Device device;
 	cv::Size size;
 	float confidence;
 	float refine;
 
-	Detector() : size({ 300, 300 }), confidence(.01f), refine(.35f) {};
+	Detector() 
+		: device(torch::DeviceType::CPU), 
+		size({ 300, 300 }), confidence(.01f), refine(.35f) {};
 	~Detector() {};
 };
 
-extern "C" LIB_DETECTION bool _stdcall DetectorDevice();
+extern "C" LIB_DETECTION torch::Device _stdcall DetectorDevice(const char* filename);
 extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, bool cuda = false);
 extern "C" LIB_DETECTION long _stdcall DetectorRelease(Detector * AHanlde);
 extern "C" LIB_DETECTION int _stdcall DetectorClassify(Detector * AHandle, const cv::Mat & AImage);
