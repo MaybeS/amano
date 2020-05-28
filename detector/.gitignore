@@ -1,8 +1,4 @@
-.vs/
-Test/
-x64/
-Win32/
-weights/
+Debug/
+Release/
+/*-dll/
 
-*.lib
-*/bin/*

@@ -177,6 +177,11 @@ BEGIN
         MENUITEM "Inference",                   ID_PARKING_INFERENCE,MFT_STRING,MFS_ENABLED
         MENUITEM "Clear",                       ID_PARKING_CLEAR,MFT_STRING,MFS_ENABLED
     END
+    POPUP "Tracking",                       65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Load video",                  ID_TRACKING_LOADVIDEO,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save sequences",              ID_TRACKING_SAVESEQUENCES,MFT_STRING,MFS_ENABLED
+    END
     POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
         MENUITEM "&About ...",                  IDM_ABOUT,MFT_STRING,MFS_ENABLED

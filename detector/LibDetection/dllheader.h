@@ -15,7 +15,7 @@
 #endif
 
 struct LIB_DETECTION Box {
-	float x, y, w, h;
+	float x, y, x2, y2;
 	float prob;
 	unsigned int obj_id;
 	unsigned int track_id;
@@ -29,10 +29,10 @@ public:
 	cv::Size size;
 	float confidence;
 	float refine;
-
+	   
 	Detector() 
 		: device(torch::DeviceType::CPU), 
-		size({ 300, 300 }), confidence(.01f), refine(.35f) {};
+		size({ 300, 300 }), confidence(.01f), refine(.9f) {};
 	~Detector() {};
 };
 

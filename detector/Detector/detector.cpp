@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "acognitive_post_def.h"
+#include "tracking.h"
 #include "LibDetection.h"
 #include "LibWarping.h"
 
@@ -41,28 +42,52 @@ cv::Size shape_window{ 1536, 1024 + 60 };
 cv::Size shape_image{ 768,1024 };
 cv::Size shape_ground{ 768, 1024 };
 
-char szFileName[100] = { 0, };
+char szFileName[256] = { 0, };
 
-Gdiplus::Bitmap* image_map = NULL, * ground_map = NULL;
-cv::Mat* image = NULL, * ground = NULL;
-cv::Mat* image_resized = NULL, * ground_resized = NULL;
-cv::Mat* crop = NULL;
-cv::Mat image_show;
+Gdiplus::Bitmap* image_map = nullptr, * ground_map = nullptr;
+cv::Mat* image = nullptr, * ground = nullptr;
+cv::Mat* image_resized = nullptr, * ground_resized = nullptr;
+cv::Mat* crop = nullptr;
+cv::Mat image_show, image_temp;
 
-Calibration* calib = NULL;
-Warp* warp = NULL;
+Calibration	*calib = nullptr;
+Warp		*warp = nullptr;
 
-Detector* g_Classifier = nullptr;
-BOOL	g_ParkingEvent = FALSE;
-int		gX = 0, gY = 0;
-std::vector<std::tuple<float, float ,float, float>> g_Parkings;
+std::vector<std::tuple<float, float, float, float>> g_Parkings;
 std::vector<int> g_ParkingResults;
 
-AP_HANDLE	g_ApHandle = NULL;
-char	g_ACognitiveUrl[256] = {0};
-BOOL	g_UnderFlip = FALSE;
-HWND	g_hWnd = NULL;
+Detector*	g_Classifier = nullptr;
+BOOL		g_ParkingEvent = FALSE;
+int			gX = 0, gY = 0;
 
+AP_HANDLE	g_ApHandle = nullptr;
+char		g_ACognitiveUrl[256] = {0};
+BOOL		g_UnderFlip = FALSE;
+HWND		g_hWnd = nullptr;
+
+Tracker*	tracker = nullptr;
+BOOL		video_stop = TRUE;
+cv::VideoCapture capture;
+
+const size_t COLOR_MAP[]{ 
+	59,76,192,60,78,194,61,80,195,62,81,197,63,83,
+	198,64,85,200,66,87,201,67,88,203,68,90,204,69,
+	92,206,70,93,207,71,95,209,73,97,210,74,99,211,
+	75,100,213,76,102,214,77,104,215,79,105,217,
+	80,107,218,81,109,219,82,110,221,84,112,222,
+	85,114,223,86,115,224,87,117,225,89,119,226,
+	90,120,228,91,122,229,93,123,230,94,125,231,
+	95,127,232,96,128,233,98,130,234,99,131,235,
+	100,133,236,102,135,237,103,136,238,104,138,239,
+	106,139,239,107,141,240,108,142,241,110,144,242,
+	111,145,243,112,147,243,114,148,244,115,150,245,
+	116,151,246,118,153,246,119,154,247,120,156,247,
+	122,157,248,123,158,249,124,160,249,126,161,250,
+	127,163,250,129,164,251,130,165,251,131,167,252,
+	133,168,252,134,169,252,135,171,253,137,172,253,
+	138,173,253,140,174,254,141,176,254,142,177,254,
+	144,178,254,145,179,254,147,181,255,148,182,255, 
+};
 
 void resizeImage(int width, int height) {
 	shape_raw.width = width;
@@ -70,6 +95,7 @@ void resizeImage(int width, int height) {
 }
 void resizeWindow(int width, int height) {
 	float ratio = shape_raw.height / (float)shape_raw.width;
+	
 	height = (int)(width * ratio / 2.f);
 	width = height / ratio * 2.f;
 
@@ -87,11 +113,9 @@ void resizeWindow(int width, int height) {
 	shape_ground.width = ground_width;
 	shape_ground.height = height;
 
-
-	shape_window.width = image_width + ground_width;
 	shape_window.height = height + 60;
-
-
+	shape_window.width = image_width + ground_width;
+	
 //	calib = new Calibration(shape_raw);
 //	warp = new Warp(*calib, shape_window);
 }
@@ -107,7 +131,7 @@ BOOL openFile(function<void(const OPENFILENAMEA&)> callback, const char* filter 
 
 	ZeroMemory(&openFileDialog, sizeof(openFileDialog));
 	openFileDialog.lStructSize = sizeof(openFileDialog);
-	openFileDialog.hwndOwner = NULL;
+	openFileDialog.hwndOwner = nullptr;
 	openFileDialog.lpstrFilter = filter;
 	openFileDialog.lpstrFile = szFileName;
 	openFileDialog.nMaxFile = MAX_PATH;
@@ -134,14 +158,13 @@ void saveFile(function<void(const OPENFILENAMEA&)> callback, const char* filter 
 	szFileName[len - 2] = 'x';
 	szFileName[len - 1] = 't';
 
-
 	if (filter == nullptr) {
 		filter = "Calibration Setting (*.txt)|*.txt";
 	}
 
 	ZeroMemory(&openFileDialog, sizeof(openFileDialog));
 	openFileDialog.lStructSize = sizeof(openFileDialog);
-	openFileDialog.hwndOwner = NULL;
+	openFileDialog.hwndOwner = nullptr;
 	openFileDialog.lpstrFilter = filter;
 	openFileDialog.lpstrFile = szFileName;
 	openFileDialog.nMaxFile = MAX_PATH;
@@ -155,7 +178,6 @@ void saveFile(function<void(const OPENFILENAMEA&)> callback, const char* filter 
 void indicator(HWND hWnd) {
 	wstring buffer;
 	wstringstream wss;
-
 	HMENU menu = GetMenu(hWnd);
 
 	wss.str(wstring());
@@ -207,15 +229,19 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 			cv::Mat down, down_ = (*ground_resized)(cv::Rect{ 0, (int)(height * 2 / 3), width, (int)(height / 3)});
 			cv::flip(down_, down, 0);
 
+			if (results != nullptr) {
+				delete results;
+				results = nullptr;
+			}
+
 			results = new vector<Box>();
 			for (const auto& element : *DetectorDetect(g_Detector, up)) {
 				results->emplace_back(element);
 			}
 			for (auto& element : *DetectorDetect(g_Detector, down)) {
-				element.y = height - element.y - element.h;
+				element.y = height - element.y2;
 				results->emplace_back(element);
 			}
-
 
 		} else {
 			DetectorSetParam(g_Detector, 300, 300);
@@ -233,7 +259,7 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 			if (box.prob > .3f) {
 				cv::rectangle(image_show, {
 					static_cast<int>(box.x), static_cast<int>(box.y),
-					static_cast<int>(box.w), static_cast<int>(box.h),
+					static_cast<int>(box.x2 - box.x), static_cast<int>(box.y2 - box.y),
 				}, cv::Scalar(255, 0, 0), 2);
 			}
 		}
@@ -243,7 +269,7 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 		for (auto box : *Yresults) {
 			cv::rectangle(image_show, {
 				static_cast<int>(box.x), static_cast<int>(box.y),
-				static_cast<int>(box.w), static_cast<int>(box.h),
+				static_cast<int>(box.x2 - box.x), static_cast<int>(box.y2 - box.y),
 			}, cv::Scalar(0, 0, 255), 2);
 		}
 
@@ -257,21 +283,22 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 
 		if (g_ParkingResults.size() > i) {
 			color = g_ParkingResults[i] > .5f ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
-		} else {
+		}
+		else {
 			color = cv::Scalar(0, 255, 0);
 		}
 
 		cv::rectangle(image_show, {
 			static_cast<int>(x * shape_image.width), static_cast<int>(y * shape_image.width),
-		}, {
-			static_cast<int>(w* shape_image.width), static_cast<int>(h* shape_image.width),
-		}, color, 2);
+			}, {
+				static_cast<int>(w * shape_image.width), static_cast<int>(h * shape_image.width),
+			}, color, 2);
 	}
 
 	ground_map = new Gdiplus::Bitmap(
 		shape_ground.width, shape_ground.height, image_show.step1(),
 		PixelFormat24bppRGB, image_show.data);
-	
+
 	InvalidateRect(hWnd, NULL, NULL);
 }
 //
@@ -427,13 +454,12 @@ long _stdcall RequestImageCallBack(TRequestImage* AImageResult, WPARAM wParam)
 	{
 		TBbox &tBbox = AImageResult->m_Result[i];
 
-		if (Yresults)
-		{
+		if (Yresults) {
 			Box tPushBox;
 			tPushBox.x = tBbox.x;
 			tPushBox.y = tBbox.y;
-			tPushBox.w = tBbox.w;
-			tPushBox.h = tBbox.h;
+			tPushBox.x2 = tBbox.x + tBbox.w;
+			tPushBox.y2 = tBbox.y + tBbox.h;
 			Yresults->push_back(tPushBox);
 		}
 
@@ -449,11 +475,10 @@ void CarDetect(int AType)
 {
 	// acogurl.txt
 	FILE* tf = fopen("acogurl.txt", "rt");
-	if (tf)
-	{
+	if (tf) {
 		fread(g_ACognitiveUrl, 1, sizeof(g_ACognitiveUrl), tf);
 		fclose(tf);
-		tf = NULL;
+		tf = nullptr;
 	}
 
 	
@@ -489,6 +514,26 @@ void CarDetect(int AType)
 	
 }
 
+
+void video_sequence(HWND hWnd) {
+	cv::Mat frame;
+
+	while (!video_stop) {
+		if (!capture.isOpened()) {
+			break;
+		}
+		capture >> frame;
+
+		if (frame.empty()) {
+			capture.release();
+			break;
+		}
+
+		frame.copyTo(*image);
+		redraw(hWnd);
+	}
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -517,11 +562,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			// acogurl.txt
 			FILE* tf = fopen("acogurl.txt", "rt");
-			if (tf)
-			{
+			if (tf) {
 				fread(g_ACognitiveUrl, 1, sizeof(g_ACognitiveUrl), tf);
 				fclose(tf);
-				tf = NULL;
+				tf = nullptr;
 			}
 
 		//	redraw(hWnd);
@@ -578,19 +622,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						for (auto box : *results) {
 							out << std::fixed << box.prob
 								<< box.x << " " << box.y << " "
-								<< box.w << " " << box.h << std::endl;
+								<< box.x2 << " " << box.y2 << std::endl;
 						}
 					}
 					out.close();
 				}, "Bounding boxes (.txt)|*.txt");
 				break;
+
 			case ID_FILE_OPEN:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
+					if (image != nullptr) {
+						delete image;
+						image = nullptr;
+					}
+					if (ground != nullptr) {
+						delete ground;
+						ground = nullptr;
+					}
 					image = new cv::Mat(cv::imread(string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
 					ground = new cv::Mat();
 
 					//resizeImage(image->cols, image->rows);
 					//resizeWindow(image->cols, image->rows);
+
 					SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height, SWP_NOMOVE | SWP_NOREPOSITION);
 					UpdateWindow(hWnd);
 					// Load calib config sequentialy
@@ -611,8 +665,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						warp->Update();
 						indicator(hWnd);
 					}
-
-
 					redraw(hWnd);
 				});
 				break;
@@ -659,6 +711,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 				}, "Calibration Setting (*.txt)|*.txt");
 				break;
+
 			case ID_PARKING_START:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
 					if (g_Classifier != nullptr) {
@@ -729,7 +782,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						float x, y, w, h;
 						std::tie(x, y, w, h) = g_Parkings[i];
 
-						if (crop == NULL) {
+						if (crop == nullptr) {
 							crop = new cv::Mat();
 						}
 
@@ -753,6 +806,64 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				g_Parkings.clear();
 				redraw(hWnd);
 				break;
+
+			case ID_TRACKING_LOADVIDEO:
+				openFile([&](const OPENFILENAMEA& openFileDialog) {
+					if (!capture.isOpened()) {
+						capture = cv::VideoCapture{ openFileDialog.lpstrFile };
+
+						if (capture.isOpened()) {
+							cv::Mat frame;
+							capture >> frame;
+
+							if (!frame.empty()) {
+								resizeImage(frame.cols, frame.rows);
+								resizeWindow(frame.cols, frame.rows);
+								SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height, SWP_NOMOVE | SWP_NOREPOSITION);
+								UpdateWindow(hWnd);
+
+								if (image != nullptr) {
+									delete image;
+									image = nullptr;
+								}
+								if (ground != nullptr) {
+									delete ground;
+									ground = nullptr;
+								}
+								if (tracker != nullptr) {
+									for (auto& track : tracker->track_active) {
+										delete track;
+									}
+									for (auto& track : tracker->track_update) {
+										delete track;
+									}
+									for (auto& track : tracker->track_finish) {
+										delete track;
+									}
+									delete tracker;
+									tracker = nullptr;
+								}
+								image = new cv::Mat();
+								ground = new cv::Mat();
+								tracker = new Tracker();
+								frame.copyTo(*image);
+
+								redraw(hWnd);
+
+								video_stop = FALSE;
+
+								SetTimer(hWnd, 0, 10, NULL);
+								SetTimer(hWnd, 1, 1000, NULL);
+							}
+						}
+					}
+				}, "Video (.mp4)|*.mp4");
+				break;
+			case ID_TRACKING_SAVESEQUENCES:
+				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
+					}, "Parking boxes (.txt)|*.txt");
+				break;
+
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -765,34 +876,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+	case WM_ERASEBKGND:
+		return TRUE;
+
     case WM_PAINT:
         {
-            PAINTSTRUCT ps;
+			PAINTSTRUCT ps;
 			HDC hdc;
-
 			hdc = BeginPaint(hWnd, &ps);
 
 			if (image_map != NULL && ground_map != NULL) {
-				Gdiplus::Graphics graphics(hdc);
-				graphics.Clear(Gdiplus::Color::Transparent);
+				RECT rect;
+				Gdiplus::Bitmap* render;
 
-				Gdiplus::Bitmap* render = image_map->Clone(
+				GetClientRect(hWnd, &rect);
+
+				Gdiplus::Bitmap buffer(rect.right, rect.bottom);
+				Gdiplus::Graphics graphics_buffer(&buffer), graphics(hdc);
+
+				// graphics.Clear(Gdiplus::Color::Black);
+				render = image_map->Clone(
 					Gdiplus::Rect(0, 0, shape_image.width, shape_image.height), PixelFormat24bppRGB);
-				graphics.DrawImage(render, 0, 0);
+				graphics_buffer.DrawImage(render, 0, 0);
 
 				render = ground_map->Clone(
 					Gdiplus::Rect(0, 0, shape_ground.width, shape_ground.height), PixelFormat24bppRGB);
-				graphics.DrawImage(render, shape_image.width, 0);
-			}
+				graphics_buffer.DrawImage(render, shape_image.width, 0);
 
+				graphics.DrawImage(&buffer, 0, 0);
+			}
             EndPaint(hWnd, &ps);
         }
         break;
 
 	case WM_KEYDOWN:
 		{
-			if (results) delete results; results = NULL;
-			if (Yresults) delete Yresults; Yresults = NULL;
+			if (results) {
+				delete results; 
+				results = nullptr;
+			}
+			if (Yresults) {
+				delete Yresults;
+				Yresults = nullptr;
+			}
 
 			int ctrl_flag = GetAsyncKeyState(VK_CONTROL);
 			int shift_flag = GetAsyncKeyState(VK_SHIFT);
@@ -889,6 +1015,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
+		}
+		break;
+
+	case WM_TIMER:
+		switch (wParam) {
+			case 0: // render video sequence
+			{
+				if (!capture.isOpened()) {
+					capture.release();
+					KillTimer(hWnd, 0);
+					break;
+				}
+
+				capture >> image_temp;
+
+				if (image_temp.empty()) {
+					capture.release();
+					KillTimer(hWnd, 0);
+					break;
+				}
+
+				image_temp.copyTo(*image);
+				redraw(hWnd);
+
+				for (const auto& track : tracker->track_active) {
+					cv::rectangle(image_show, {
+						static_cast<int>(track->boxes.back().x), static_cast<int>(track->boxes.back().y),
+						static_cast<int>(track->boxes.back().x2 - track->boxes.back().x),
+						static_cast<int>(track->boxes.back().y2 - track->boxes.back().y),
+						}, cv::Scalar(COLOR_MAP[track->id + 0], COLOR_MAP[track->id + 1], COLOR_MAP[track->id + 2]), 2);
+				}
+
+				break;
+			}
+			case 1: // prediction if model loaded
+			{
+				tracker->update(*DetectorDetect(g_Detector, *ground_resized));
+			}
 		}
 		break;
 

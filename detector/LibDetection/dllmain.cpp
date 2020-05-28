@@ -99,7 +99,7 @@ extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetect(Detector * A
 			// masking confidence threshold
 			result = result.index_select(0, torch::where(
 				result.index_select(1, torch::arange(0, 1, torch::kLong)).squeeze() > AHandle->confidence)[0]);
-
+			
 			if (refine) {
 				// refine boxes using nms
 				result = result.index_select(0, nms(
@@ -113,9 +113,9 @@ extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetect(Detector * A
 				if (data[0] > AHandle->confidence) {
 					results->push_back({
 						data[1] * AImage.cols, data[2] * AImage.rows,
-						(data[3] - data[1]) * AImage.cols, (data[4] - data[2]) * AImage.rows,
+						data[3] * AImage.cols, data[4] * AImage.rows,
 						data[0], static_cast<unsigned int>(index),
-						});
+					});
 				}
 			}
 		}
