@@ -15,6 +15,8 @@ LIB_DETECTION torch::Device _stdcall DetectorDevice(const char* filename) {
 	if (file.find("CUDA") != std::string::npos) {
 		if (torch::hasCUDA()) {
 			return torch::DeviceType::CUDA;
+		} else {
+			std::cout << "Warning: CUDA not enabled, but weight file compiled by CUDA";
 		}
 	}
 	return torch::DeviceType::CPU;

@@ -704,7 +704,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						}
 					}
 					out.close();
-					}, "Parking boxes (.txt)|*.txt");
+				}, "Parking boxes (.txt)|*.txt");
 				break;
 			case ID_PARKING_LOAD:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
