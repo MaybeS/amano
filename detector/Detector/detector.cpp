@@ -853,7 +853,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								video_stop = FALSE;
 
 								SetTimer(hWnd, 0, 10, NULL);
-								SetTimer(hWnd, 1, 1000, NULL);
+								SetTimer(hWnd, 1, 100, NULL);
 							}
 						}
 					}
@@ -1041,10 +1041,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				for (const auto& track : tracker->track_active) {
 					cv::rectangle(image_show, {
-						static_cast<int>(track->boxes.back().x), static_cast<int>(track->boxes.back().y),
+						static_cast<int>(track->boxes.back().x),
+						static_cast<int>(track->boxes.back().y),
 						static_cast<int>(track->boxes.back().x2 - track->boxes.back().x),
 						static_cast<int>(track->boxes.back().y2 - track->boxes.back().y),
-						}, cv::Scalar(COLOR_MAP[track->id + 0], COLOR_MAP[track->id + 1], COLOR_MAP[track->id + 2]), 2);
+					}, cv::Scalar(COLOR_MAP[track->id + 0], COLOR_MAP[track->id + 1], COLOR_MAP[track->id + 2]), 2);
 				}
 
 				break;
