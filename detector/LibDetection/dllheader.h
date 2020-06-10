@@ -32,7 +32,7 @@ public:
 	   
 	Detector() 
 		: device(torch::DeviceType::CPU), 
-		size({ 300, 300 }), confidence(.01f), refine(.9f) {};
+		size({ 300, 300 }), confidence(.3f), refine(.9f) {};
 	~Detector() {};
 };
 
