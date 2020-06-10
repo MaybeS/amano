@@ -18,7 +18,7 @@ public:
     std::vector<Track*> track_active, track_update, track_finish;
 
     explicit Tracker(float sigma_l = 0.f, float sigma_h = .5f, float sigma_iou = .5f,
-        size_t t_min = 2)
+        size_t t_min = 25)
         : sigma_l(sigma_l), sigma_h(sigma_h), sigma_iou(sigma_iou),
         t_min(t_min), frame_count(0), track_count(0) {};
 
@@ -72,10 +72,10 @@ public:
 
 private:
     float iou(const Box& first, const Box& second) {
-        unsigned int overlap_x0 = std::max(first.x, second.x);
-        unsigned int overlap_y0 = std::max(first.y, second.y);
-        unsigned int overlap_x1 = std::min(first.x2, second.x2);
-        unsigned int overlap_y1 = std::min(first.y2, second.y2);
+        float overlap_x0 = std::max(first.x, second.x);
+        float overlap_y0 = std::max(first.y, second.y);
+        float overlap_x1 = std::min(first.x2, second.x2);
+        float overlap_y1 = std::min(first.y2, second.y2);
 
         if (overlap_x1 - overlap_x0 <= 0 || overlap_y1 - overlap_y0 <= 0) {
             return 0;

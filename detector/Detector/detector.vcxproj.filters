@@ -19,6 +19,9 @@
     <ClInclude Include="tracking.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="parking.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Resource Files">

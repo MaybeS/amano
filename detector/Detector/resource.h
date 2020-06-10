@@ -41,6 +41,8 @@
 #define ID_DETECT_INFERENCE_ASPECT      32795
 #define ID_TRACKING_LOADVIDEO           32797
 #define ID_TRACKING_SAVESEQUENCES       32798
+#define ID_TRACKING_START               32799
+#define ID_TRACKING_STOP                32800
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -49,7 +51,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32799
+#define _APS_NEXT_COMMAND_VALUE         32801
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

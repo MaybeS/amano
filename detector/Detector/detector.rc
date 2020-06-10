@@ -180,6 +180,9 @@ BEGIN
     POPUP "Tracking",                       65535,MFT_STRING,MFS_ENABLED
     BEGIN
         MENUITEM "Load video",                  ID_TRACKING_LOADVIDEO,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Start / Stop",                ID_TRACKING_START,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
         MENUITEM "Save sequences",              ID_TRACKING_SAVESEQUENCES,MFT_STRING,MFS_ENABLED
     END
     POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED

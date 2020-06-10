@@ -167,6 +167,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="LibDetection.h" />
     <ClInclude Include="LibWarping.h" />
+    <ClInclude Include="parking.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="tracking.h" />
