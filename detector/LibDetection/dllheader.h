@@ -38,7 +38,7 @@ public:
 
 extern "C" LIB_DETECTION torch::Device _stdcall DetectorDevice(const char* filename);
 extern "C" LIB_DETECTION Detector * _stdcall DetectorInit(const char* filename, bool cuda = false);
-extern "C" LIB_DETECTION long _stdcall DetectorRelease(Detector * AHanlde);
+extern "C" LIB_DETECTION long _stdcall DetectorRelease(Detector * AHandle);
 extern "C" LIB_DETECTION int _stdcall DetectorClassify(Detector * AHandle, const cv::Mat & AImage);
 extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetect(Detector * AHandle, cv::Mat & AImage, bool refine = true);
 extern "C" LIB_DETECTION std::vector<Box> * _stdcall DetectorDetectImage(Detector * AHanlde, const char* filename);

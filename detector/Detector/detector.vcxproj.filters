@@ -16,10 +16,10 @@
     <ClInclude Include="LibDetection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tracking.h">
+    <ClInclude Include="parking.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="parking.h">
+    <ClInclude Include="LibTracking.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

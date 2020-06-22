@@ -10,10 +10,10 @@
 #include <fstream>
 
 #include "acognitive_post_def.h"
-#include "tracking.h"
 #include "parking.h"
 #include "LibDetection.h"
 #include "LibWarping.h"
+#include "LibTracking.h"
 
 using namespace std;
 
@@ -71,7 +71,6 @@ Tracker*	tracker = nullptr;
 BOOL		video_stop = TRUE;
 cv::VideoCapture capture;
 
-Parking*	parker = nullptr;
 
 const size_t COLOR_MAP[]{ 
 	59,76,192,60,78,194,61,80,195,62,81,197,63,83,
@@ -280,38 +279,24 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 		cv::imwrite("pimg_2.jpg", image_show);
 	}
 
-	if (parker != nullptr) {
-		for (size_t i = 0; i < parker->parkings.size(); i++) {
-			float x, y, x2, y2;
-			std::tie(x, y, x2, y2) = parker->parkings[i];
+	for (int i = 0; i < g_Parkings.size(); i++) {
+		cv::Scalar color;
+		float x, y, x2, y2;
+		std::tie(x, y, x2, y2) = g_Parkings[i];
 
-			cv::rectangle(image_show, {
-				static_cast<int>(x * shape_image.width),
-				static_cast<int>(y * shape_image.width),
-				static_cast<int>((x2 - x) * shape_image.width),
-				static_cast<int>((y2 - y) * shape_image.width),
-			}, parker->is_parking[i] ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255), 2);
+		if (g_ParkingResults.size() > i) {
+			color = g_ParkingResults[i] > .5f ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
 		}
-	} else {
-		for (int i = 0; i < g_Parkings.size(); i++) {
-			cv::Scalar color;
-			float x, y, x2, y2;
-			std::tie(x, y, x2, y2) = g_Parkings[i];
-
-			if (g_ParkingResults.size() > i) {
-				color = g_ParkingResults[i] > .5f ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
-			}
-			else {
-				color = cv::Scalar(0, 255, 0);
-			}
-
-			cv::rectangle(image_show, {
-				static_cast<int>(x * shape_image.width),
-				static_cast<int>(y * shape_image.width),
-				static_cast<int>((x2 - x) * shape_image.width),
-				static_cast<int>((y2 - y) * shape_image.width),
-				}, color, 2);
+		else {
+			color = cv::Scalar(0, 255, 0);
 		}
+
+		cv::rectangle(image_show, {
+			static_cast<int>(x * shape_image.width),
+			static_cast<int>(y * shape_image.width),
+			static_cast<int>((x2 - x) * shape_image.width),
+			static_cast<int>((y2 - y) * shape_image.width),
+			}, color, 2);
 	}
 
 	ground_map = new Gdiplus::Bitmap(
@@ -873,21 +858,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								ground = nullptr;
 							}
 							if (tracker != nullptr) {
-								for (auto& track : tracker->track_active) {
-									delete track;
-								}
-								for (auto& track : tracker->track_update) {
-									delete track;
-								}
-								for (auto& track : tracker->track_finish) {
-									delete track;
-								}
-								delete tracker;
-								tracker = nullptr;
+								TrackerRelease(tracker);
 							}
 							image = new cv::Mat();
 							ground = new cv::Mat();
-							tracker = new Tracker();
+							tracker = TrackerInit(shape_image.width, shape_image.height);
 							frame.copyTo(*image);
 
 							redraw(hWnd);
@@ -904,11 +879,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 										0, 0, 0, 0
 									});
 								}
-								parker = new Parking(g_Parkings, boxes);
-							} else {
-								parker = new Parking(g_Parkings);
 							}
-
 							redraw(hWnd);
 							video_stop = TRUE;
 						}
@@ -1112,13 +1083,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				image_temp.copyTo(*image);
 				redraw(hWnd);
 
-				for (const auto& track : tracker->track_active) {
+				TrackerViewTracks(tracker, [](const Track& track) {
 					cv::rectangle(image_show, {
-						static_cast<int>(track->boxes.back().x),
-						static_cast<int>(track->boxes.back().y),
-						static_cast<int>(track->boxes.back().x2 - track->boxes.back().x),
-						static_cast<int>(track->boxes.back().y2 - track->boxes.back().y),
-					}, cv::Scalar(COLOR_MAP[track->id + 0], COLOR_MAP[track->id + 1], COLOR_MAP[track->id + 2]), 1);
+						static_cast<int>(track.boxes.back().x),
+						static_cast<int>(track.boxes.back().y),
+						static_cast<int>(track.boxes.back().x2 - track.boxes.back().x),
+						static_cast<int>(track.boxes.back().y2 - track.boxes.back().y),
+						}, cv::Scalar(COLOR_MAP[track.id + 0], COLOR_MAP[track.id + 1], COLOR_MAP[track.id + 2]), 1);
+				});
+
+				for (const auto& track : TrackerTracks(tracker)) {
 				}
 
 				break;
@@ -1130,33 +1104,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				}
 
-				tracker->update(*DetectorDetect(g_Detector, *ground_resized));
-				
-				std::vector<Box> boxes;
-				std::vector<bool> enters;
-				for (const auto& track : tracker->track_active) {
-					if (abs(track->boxes.back().y - track->boxes.front().y) > 10 ||
-						track->boxes.size() < 10) {
-						boxes.push_back({
-							track->boxes.back().x / shape_image.width,
-							track->boxes.back().y / shape_image.width,
-							track->boxes.back().x2 / shape_image.width,
-							track->boxes.back().y2 / shape_image.width,
-							0, 0, 0, 0,
-							});
-						if (!((track->boxes.front().y < shape_image.height / 2) ^
-							(track->boxes.back().y - track->boxes.front().y < 0))) {
-							// enter
-							enters.emplace_back(TRUE);
-						} else if (abs(track->boxes.back().y - track->boxes.front().y) > 10) {
-							// exit
-							enters.emplace_back(FALSE);
-						} else {
-							enters.emplace_back(TRUE);
-						}
-					}
-				}
-				parker->update(boxes, enters);
+				TrackerUpdate(tracker, *DetectorDetect(g_Detector, *ground_resized));
 			}
 		}
 		break;
