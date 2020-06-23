@@ -78,6 +78,12 @@ extern "C" LIB_TRACKING long _stdcall TrackerSetParam(int width, int height,
                                                       float sigma_iou = .5f, size_t t_min = 25);
 
 extern "C" LIB_TRACKING long _stdcall TrackerUpdate(Tracker* AHandle, const std::vector<Box>& boxes);
+
+extern "C" LIB_TRACKING long _stdcall TrackerClearTracking(Tracker * AHandle);
+extern "C" LIB_TRACKING long _stdcall TrackerClearParking(Tracker * AHandle);
+extern "C" LIB_TRACKING long _stdcall TrackerSetParking(Tracker * AHandle, const std::vector<Park> & parks);
+extern "C" LIB_TRACKING long _stdcall TrackerAddParking(Tracker * AHandle, float x, float y, float x2, float y2);
+
 extern "C" LIB_TRACKING long _stdcall TrackerViewParks(Tracker* AHandle, const std::function<void(const Park&)>& f);
 extern "C" LIB_TRACKING const std::vector<Park>& _stdcall TrackerParks(Tracker* AHandle);
 extern "C" LIB_TRACKING long _stdcall TrackerViewTracks(Tracker* AHandle, const std::function<void(const Track&)> & f);

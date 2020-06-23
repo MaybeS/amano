@@ -148,6 +148,33 @@ LIB_TRACKING long _stdcall TrackerUpdate(Tracker* AHandle, const std::vector<Box
     return 0;
 }
 
+LIB_TRACKING long _stdcall TrackerClearTracking(Tracker* AHandle) {
+    AHandle->track_active.clear();
+    AHandle->track_finish.clear();
+    AHandle->track_active.clear();
+
+    return 0;
+}
+
+LIB_TRACKING long _stdcall TrackerClearParking(Tracker* AHandle) {
+    AHandle->parkings.clear();;
+
+    return 0;
+}
+
+LIB_TRACKING long _stdcall TrackerSetParking(Tracker * AHandle, const std::vector<Park>& parks) {
+    TrackerClearParking(AHandle);
+    AHandle->parkings = std::vector<Park>{ parks };
+
+    return 0;
+}
+
+LIB_TRACKING long _stdcall TrackerAddParking(Tracker * AHandle, float x, float y, float x2, float y2) {
+    AHandle->parkings.push_back({ x, y, x2, y2 });
+
+    return 0;
+}
+
 LIB_TRACKING long _stdcall TrackerViewParks(Tracker* AHandle, const std::function<void(const Park&)>& f) {
     for (const auto& park : AHandle->parkings) {
         f(park);

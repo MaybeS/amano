@@ -37,7 +37,6 @@ Detector* g_Detector = nullptr;
 std::vector<Box>* results = nullptr;
 std::vector<Box>* Yresults = nullptr;
 
-
 cv::Size shape_raw{ 1536, 2048 };
 cv::Size shape_window{ 1536, 1024 + 60 };
 cv::Size shape_image{ 768,1024 };
@@ -54,13 +53,8 @@ cv::Mat image_show, image_temp;
 Calibration	*calib = nullptr;
 Warp		*warp = nullptr;
 
-std::vector<std::tuple<float, float, float, float>> g_Parkings;
-std::vector<bool> g_ParkingExists;
-std::vector<int> g_ParkingResults;
-
-Detector*	g_Classifier = nullptr;
-BOOL		g_ParkingEvent = FALSE;
-int			gX = 0, gY = 0;
+BOOL		parking_events = FALSE;
+RECT		parking_rc{ 0, 0, 0, 0 };
 
 AP_HANDLE	g_ApHandle = nullptr;
 char		g_ACognitiveUrl[256] = {0};
@@ -70,7 +64,6 @@ HWND		g_hWnd = nullptr;
 Tracker*	tracker = nullptr;
 BOOL		video_stop = TRUE;
 cv::VideoCapture capture;
-
 
 const size_t COLOR_MAP[]{ 
 	59,76,192,60,78,194,61,80,195,62,81,197,63,83,
@@ -279,25 +272,28 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 		cv::imwrite("pimg_2.jpg", image_show);
 	}
 
-	for (int i = 0; i < g_Parkings.size(); i++) {
+	TrackerViewParks(tracker, [](const Park& park) {
 		cv::Scalar color;
-		float x, y, x2, y2;
-		std::tie(x, y, x2, y2) = g_Parkings[i];
 
-		if (g_ParkingResults.size() > i) {
-			color = g_ParkingResults[i] > .5f ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
-		}
-		else {
-			color = cv::Scalar(0, 255, 0);
+		switch (park.state) {
+			case (Park::State::empty): {
+				color = cv::Scalar(255, 0, 0);
+			}
+			case (Park::State::parking): {
+				color = cv::Scalar(0, 0, 255);
+			}
+			case (Park::State::parking_invisible): {
+				color = cv::Scalar(0, 255, 0);
+			}
 		}
 
 		cv::rectangle(image_show, {
-			static_cast<int>(x * shape_image.width),
-			static_cast<int>(y * shape_image.width),
-			static_cast<int>((x2 - x) * shape_image.width),
-			static_cast<int>((y2 - y) * shape_image.width),
-			}, color, 2);
-	}
+			static_cast<int>(park.x * shape_image.width),
+			static_cast<int>(park.y * shape_image.width),
+			static_cast<int>((park.x2 - park.x) * shape_image.width),
+			static_cast<int>((park.y2 - park.y) * shape_image.width),
+		}, color, 2);
+	});
 
 	ground_map = new Gdiplus::Bitmap(
 		shape_ground.width, shape_ground.height, image_show.step1(),
@@ -341,6 +337,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		calib = CalibrationInit(shape_raw);
 		warp = WarpInit(*calib, shape_window);
+
+		// Init tracker
+		tracker = TrackerInit(shape_image.width, shape_image.height);
 
 		// Load calib config sequentialy
 		int len = strlen(openFileDialog.lpstrFile);
@@ -613,8 +612,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (g_Detector == nullptr)
 						break;
 
-					if (results != nullptr)
+					if (results != nullptr) {
 						delete results;
+						results = nullptr;
+					}
 
 					redraw(hWnd, true, wmId == ID_DETECT_INFERENCE_ASPECT);
 				}
@@ -631,6 +632,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					out.close();
 				}, "Bounding boxes (.txt)|*.txt");
+				break;
+
+			case ID_DETECT_CLEAR:
+				if (results != nullptr) {
+					delete results;
+					results = nullptr;
+				}
+				redraw(hWnd);
 				break;
 
 			case ID_FILE_OPEN:
@@ -674,58 +683,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			case ID_FILE_LOAD:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
-					{
-						std::ifstream in(openFileDialog.lpstrFile);
+					std::ifstream in(openFileDialog.lpstrFile);
 
-						if (in.is_open()) {
-							in >> calib->cx >> calib->cy >> calib->fx >> calib->fy;
+					if (in.is_open()) {
+						in >> calib->cx >> calib->cy >> calib->fx >> calib->fy;
 
-							in >> warp->center[0] >> warp->center[1] >> warp->center[2];
-							in >> warp->up[0] >> warp->up[1] >> warp->up[2];
-							in >> warp->right[0] >> warp->right[1] >> warp->right[2];
-						}
-
-						in.close();
-
-						warp->Update();
-						indicator(hWnd);
-						redraw(hWnd);
+						in >> warp->center[0] >> warp->center[1] >> warp->center[2];
+						in >> warp->up[0] >> warp->up[1] >> warp->up[2];
+						in >> warp->right[0] >> warp->right[1] >> warp->right[2];
 					}
 
+					in.close();
+
+					warp->Update();
+					indicator(hWnd);
+					redraw(hWnd);
 				}, "Calibration Setting (*.txt)|*.txt");
 				break;
 			case ID_FILE_SAVE:
 				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
-					{
-						std::ofstream out(saveFileDialog.lpstrFile);
+					std::ofstream out(saveFileDialog.lpstrFile);
 
-						if (out.is_open()) {
-							out << std::fixed
-								<< calib->cx << " " << calib->cy << " "
-								<< calib->fx << " " << calib->fy << std::endl;
-							out << std::fixed
-								<< warp->center[0] << " " << warp->center[1] << " " << warp->center[2] << " " << std::endl;
-							out << std::fixed
-								<< warp->up[0] << " " << warp->up[1] << " " << warp->up[2] << " " << std::endl;
-							out << std::fixed
-								<< warp->right[0] << " " << warp->right[1] << " " << warp->right[2] << " " << std::endl;
-						}
-
-						out.close();
+					if (out.is_open()) {
+						out << std::fixed
+							<< calib->cx << " " << calib->cy << " "
+							<< calib->fx << " " << calib->fy << std::endl;
+						out << std::fixed
+							<< warp->center[0] << " " << warp->center[1] << " " << warp->center[2] << " " << std::endl;
+						out << std::fixed
+							<< warp->up[0] << " " << warp->up[1] << " " << warp->up[2] << " " << std::endl;
+						out << std::fixed
+							<< warp->right[0] << " " << warp->right[1] << " " << warp->right[2] << " " << std::endl;
 					}
+
+					out.close();
 				}, "Calibration Setting (*.txt)|*.txt");
 				break;
 
-			case ID_PARKING_START:
-				openFile([&](const OPENFILENAMEA& openFileDialog) {
-					if (g_Classifier != nullptr) {
-						DetectorRelease(g_Classifier);
-					}
-
-					g_Classifier = DetectorInit(openFileDialog.lpstrFile);
-					DetectorSetParam(g_Classifier, 224, 224);
-				});
-				break;
 			case ID_PARKING_DRAW:
 				{
 					wstring buffer;
@@ -735,12 +729,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					wss.str(wstring());
 
-					if (g_ParkingEvent) {
+					if (parking_events) {
 						wss << "Draw (ready)";
 					} else {
 						wss << "Drawinig";
 					}
-					g_ParkingEvent = !g_ParkingEvent;
+					parking_events = !parking_events;
 
 					ModifyMenu(menu, ID_PARKING_DRAW, MF_BYCOMMAND | MF_STRING,
 						ID_PARKING_DRAW, wss.str().c_str());
@@ -751,14 +745,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
 					std::ofstream out(saveFileDialog.lpstrFile);
 					if (out.is_open()) {
-						for (auto box : g_Parkings) {
-							float x, y, x2, y2;
-							std::tie(x, y, x2, y2) = box;
-
-							out << std::fixed 
-								<< x << " " << y << " " 
-								<< x2 << " " << y2 << std::endl;
-						}
+						TrackerViewParks(tracker, [&out](const Park& park) {
+							out << std::fixed
+								<< park.x << " " << park.y << " "
+								<< park.x2 << " " << park.y2 << std::endl;
+						});
 					}
 					out.close();
 				}, "Parking boxes (.txt)|*.txt");
@@ -767,12 +758,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
 					std::ifstream in(openFileDialog.lpstrFile);
 
+					TrackerClearParking(tracker);
 					if (in.is_open()) {
 						float x, y, x2, y2;
 						while (in >> x >> y >> x2 >> y2) {
-							g_Parkings.push_back({
-								x, y, x2, y2,
-							});
+							TrackerAddParking(tracker, x, y, x2, y2);
 						}
 					}
 
@@ -780,35 +770,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					redraw(hWnd);
 				}, "Parking boxes (.txt)|*.txt");
 				break;
-			case ID_PARKING_INFERENCE:
-				if (g_Classifier && g_ParkingResults.size() != g_Parkings.size()) {
-					for (int i = 0; i < g_Parkings.size(); i++) {
-						float x, y, x2, y2;
-						std::tie(x, y, x2, y2) = g_Parkings[i];
-
-						if (crop == nullptr) {
-							crop = new cv::Mat();
-						}
-
-						(*ground_resized)({
-							static_cast<int>(x * shape_image.width), 
-							static_cast<int>(y * shape_image.width),
-							static_cast<int>(x2 * shape_image.width),
-							static_cast<int>(y2 * shape_image.width),
-						}).copyTo(*crop);
-
-						if (y * shape_image.width > shape_image.height / 2.f) {
-							cv::flip(*crop, *crop, 0);
-						}
-
-						g_ParkingResults.push_back(DetectorClassify(g_Classifier, *crop));
-					}
-				}
-				redraw(hWnd);
-				break;
 			case ID_PARKING_CLEAR:
-				g_ParkingResults.clear();
-				g_Parkings.clear();
+				TrackerClearParking(tracker);
 				redraw(hWnd);
 				break;
 
@@ -824,13 +787,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								openFileDialog.lpstrFile[len - 2] = 'x';
 								openFileDialog.lpstrFile[len - 1] = 't';
 								std::ifstream in(openFileDialog.lpstrFile);
-
+								
+								TrackerClearParking(tracker);
 								if (in.is_open()) {
 									float x, y, x2, y2;
 									while (in >> x >> y >> x2 >> y2) {
-										g_Parkings.push_back({
-											x, y, x2, y2,
-										});
+										TrackerAddParking(tracker, x, y, x2, y2);
 									}
 								}
 
@@ -1089,12 +1051,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						static_cast<int>(track.boxes.back().y),
 						static_cast<int>(track.boxes.back().x2 - track.boxes.back().x),
 						static_cast<int>(track.boxes.back().y2 - track.boxes.back().y),
-						}, cv::Scalar(COLOR_MAP[track.id + 0], COLOR_MAP[track.id + 1], COLOR_MAP[track.id + 2]), 1);
+					}, cv::Scalar(COLOR_MAP[track.id + 0], COLOR_MAP[track.id + 1], COLOR_MAP[track.id + 2]), 1);
 				});
-
-				for (const auto& track : TrackerTracks(tracker)) {
-				}
-
 				break;
 			}
 			case 1: // prediction if model loaded
@@ -1116,34 +1074,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONDOWN:
-		if (g_ParkingEvent) {
-			int lX = LOWORD(lParam);
-			int lY = HIWORD(lParam);
+		if (parking_events) {
+			parking_rc.left = LOWORD(lParam) - shape_image.width;
+			parking_rc.top = HIWORD(lParam);
 
-			if (lX >= shape_image.width) {
-				gX = LOWORD(lParam);
-				gY = HIWORD(lParam);
+			if (parking_rc.left < 0) {
+				parking_rc.left = parking_rc.top = 0;
 			}
 		}
 		break;
 
+	case WM_MOUSEMOVE:
+		if (parking_events) {
+			if (parking_rc.left > 0 && parking_rc.top > 0) {
+				parking_rc.right = LOWORD(lParam) - shape_image.width;
+				parking_rc.bottom = HIWORD(lParam);
+
+				cv::rectangle(image_show, {
+					parking_rc.left, parking_rc.top,
+					parking_rc.right, parking_rc.bottom,
+				}, cv::Scalar{0 ,255, 0}, 2);
+				InvalidateRect(hWnd, NULL, NULL);
+			}
+			parking_rc.right = parking_rc.bottom = 0;
+		}
+		break;
+
 	case WM_LBUTTONUP:
-		if (g_ParkingEvent) {
-			if (gX && gY) {
-				int lX = LOWORD(lParam);
-				int lY = HIWORD(lParam);
-				
-				if (lX >= shape_image.width) {
-					g_Parkings.push_back({
-						(MIN(gX, lX) - shape_image.width) / static_cast<float>(shape_image.width),
-						MIN(gY, lY) / static_cast<float>(shape_image.width),
-						(MAX(gX, lX) - shape_image.width) / static_cast<float>(shape_image.width),
-						MAX(gY, lY) / static_cast<float>(shape_image.width),
-					});
+		if (parking_events) {
+			if (parking_rc.left > 0 && parking_rc.top > 0) {
+				parking_rc.right = LOWORD(lParam) - shape_image.width;
+				parking_rc.bottom = HIWORD(lParam);
+
+				if (parking_rc.right >= 0) {
+					TrackerAddParking(tracker,
+						MIN(parking_rc.left, parking_rc.right) / static_cast<float>(shape_image.width),
+						MIN(parking_rc.top, parking_rc.bottom) / static_cast<float>(shape_image.width),
+						MAX(parking_rc.left, parking_rc.right) / static_cast<float>(shape_image.width),
+						MAX(parking_rc.top, parking_rc.bottom) / static_cast<float>(shape_image.width)
+					);
 					redraw(hWnd);
 				}
 			}
-			gX = gY = 0;
+			parking_rc.left = parking_rc.top = 0;
+			parking_rc.right = parking_rc.bottom = 0;
 		}
 		break;
 

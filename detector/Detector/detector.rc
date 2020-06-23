@@ -165,16 +165,16 @@ BEGIN
         MENUITEM MFT_SEPARATOR
         MENUITEM "Inference(&I)",               ID_DETECT_INFERENCE,MFT_STRING,MFS_ENABLED
         MENUITEM "Inference (1600x300)",        ID_DETECT_INFERENCE_ASPECT,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Clear",                       ID_DETECT_CLEAR,MFT_STRING,MFS_ENABLED
     END
     POPUP "Parking",                        65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Load Model",                  ID_PARKING_START,MFT_STRING,MFS_ENABLED
         MENUITEM "Draw (ready)",                ID_PARKING_DRAW,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Save",                        ID_PARKING_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM "Load",                        ID_PARKING_LOAD,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Inference",                   ID_PARKING_INFERENCE,MFT_STRING,MFS_ENABLED
         MENUITEM "Clear",                       ID_PARKING_CLEAR,MFT_STRING,MFS_ENABLED
     END
     POPUP "Tracking",                       65535,MFT_STRING,MFS_ENABLED
