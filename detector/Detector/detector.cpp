@@ -856,12 +856,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					results = nullptr;
 				}
 
-				SetTimer(hWnd, 0, 10, NULL);
-				SetTimer(hWnd, 1, 100, NULL);
+				SetTimer(hWnd, 0, 5, NULL);
+				SetTimer(hWnd, 1, 1000, NULL);
 				break;
 
 			case ID_TRACKING_SAVESEQUENCES:
-				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
+				saveFile([](const OPENFILENAMEA& saveFileDialog) {
 				}, "Parking boxes (.txt)|*.txt");
 				break;
 
@@ -1092,7 +1092,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				cv::rectangle(image_show, {
 					parking_rc.left, parking_rc.top,
-					parking_rc.right, parking_rc.bottom,
+					parking_rc.right - parking_rc.left,
+					parking_rc.bottom - parking_rc.top,
 				}, cv::Scalar{0 ,255, 0}, 2);
 				InvalidateRect(hWnd, NULL, NULL);
 			}
