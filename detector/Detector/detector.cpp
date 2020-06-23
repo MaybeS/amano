@@ -53,7 +53,8 @@ cv::Mat image_show, image_temp;
 Calibration	*calib = nullptr;
 Warp		*warp = nullptr;
 
-BOOL		parking_events = FALSE;
+BOOL		parking_draw = FALSE;
+BOOL		parking_check = FALSE;
 RECT		parking_rc{ 0, 0, 0, 0 };
 
 AP_HANDLE	g_ApHandle = nullptr;
@@ -65,30 +66,67 @@ Tracker*	tracker = nullptr;
 BOOL		video_stop = TRUE;
 cv::VideoCapture capture;
 
-const size_t COLOR_MAP[]{ 
-	59,76,192,60,78,194,61,80,195,62,81,197,63,83,
-	198,64,85,200,66,87,201,67,88,203,68,90,204,69,
-	92,206,70,93,207,71,95,209,73,97,210,74,99,211,
-	75,100,213,76,102,214,77,104,215,79,105,217,
-	80,107,218,81,109,219,82,110,221,84,112,222,
-	85,114,223,86,115,224,87,117,225,89,119,226,
-	90,120,228,91,122,229,93,123,230,94,125,231,
-	95,127,232,96,128,233,98,130,234,99,131,235,
-	100,133,236,102,135,237,103,136,238,104,138,239,
-	106,139,239,107,141,240,108,142,241,110,144,242,
-	111,145,243,112,147,243,114,148,244,115,150,245,
-	116,151,246,118,153,246,119,154,247,120,156,247,
-	122,157,248,123,158,249,124,160,249,126,161,250,
-	127,163,250,129,164,251,130,165,251,131,167,252,
-	133,168,252,134,169,252,135,171,253,137,172,253,
-	138,173,253,140,174,254,141,176,254,142,177,254,
-	144,178,254,145,179,254,147,181,255,148,182,255, 
+class Color {
+public:
+	enum class Value {
+		empty, parking, parking_invisible, 
+	} value;
+
+	Color() = default;
+	constexpr Color(Value value)
+		: value(value) {}
+	constexpr Color(Park::State state)
+		: value(static_cast<Value>(static_cast<int>(state))) {}
+
+	operator Value() const { return value; }
+	explicit operator bool() = delete;
+
+	cv::Scalar color() {
+		switch (value) {
+			case Value::empty:
+				return cv::Scalar{0, 0, 255};
+			case Value::parking:
+				return cv::Scalar{0, 255, 0};
+			case Value::parking_invisible:
+				return cv::Scalar{0, 255, 255};
+		}
+	}
+
+	static cv::Scalar map(int seed = 0) {
+		size_t MAP_SIZE = 210;
+		size_t MAP[] = {
+			59,76,192,60,78,194,61,80,195,62,81,197,63,83,
+			198,64,85,200,66,87,201,67,88,203,68,90,204,69,
+			92,206,70,93,207,71,95,209,73,97,210,74,99,211,
+			75,100,213,76,102,214,77,104,215,79,105,217,
+			80,107,218,81,109,219,82,110,221,84,112,222,
+			85,114,223,86,115,224,87,117,225,89,119,226,
+			90,120,228,91,122,229,93,123,230,94,125,231,
+			95,127,232,96,128,233,98,130,234,99,131,235,
+			100,133,236,102,135,237,103,136,238,104,138,239,
+			106,139,239,107,141,240,108,142,241,110,144,242,
+			111,145,243,112,147,243,114,148,244,115,150,245,
+			116,151,246,118,153,246,119,154,247,120,156,247,
+			122,157,248,123,158,249,124,160,249,126,161,250,
+			127,163,250,129,164,251,130,165,251,131,167,252,
+			133,168,252,134,169,252,135,171,253,137,172,253,
+			138,173,253,140,174,254,141,176,254,142,177,254,
+			144,178,254,145,179,254,147,181,255,148,182,255,
+		};
+
+		return cv::Scalar(
+			MAP[seed % MAP_SIZE],
+			MAP[(seed+1) % MAP_SIZE],
+			MAP[(seed+2) % MAP_SIZE]
+		);
+	}
 };
 
 void resizeImage(int width, int height) {
 	shape_raw.width = width;
 	shape_raw.height = height;
 }
+
 void resizeWindow(int width, int height) {
 	float ratio = shape_raw.height / (float)shape_raw.width;
 	
@@ -111,7 +149,11 @@ void resizeWindow(int width, int height) {
 
 	shape_window.height = height + 60;
 	shape_window.width = image_width + ground_width;
-	
+
+	if (tracker != nullptr) {
+		TrackerSetParam(tracker, shape_image.width ,shape_image.height);
+	}
+
 //	calib = new Calibration(shape_raw);
 //	warp = new Warp(*calib, shape_window);
 }
@@ -273,26 +315,12 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 	}
 
 	TrackerViewParks(tracker, [](const Park& park) {
-		cv::Scalar color;
-
-		switch (park.state) {
-			case (Park::State::empty): {
-				color = cv::Scalar(255, 0, 0);
-			}
-			case (Park::State::parking): {
-				color = cv::Scalar(0, 0, 255);
-			}
-			case (Park::State::parking_invisible): {
-				color = cv::Scalar(0, 255, 0);
-			}
-		}
-
 		cv::rectangle(image_show, {
 			static_cast<int>(park.x * shape_image.width),
 			static_cast<int>(park.y * shape_image.width),
 			static_cast<int>((park.x2 - park.x) * shape_image.width),
 			static_cast<int>((park.y2 - park.y) * shape_image.width),
-		}, color, 2);
+		}, Color(park.state).color(), 2);
 	});
 
 	ground_map = new Gdiplus::Bitmap(
@@ -513,10 +541,8 @@ void CarDetect(int AType)
 	if (AType == 0 || AType == 2)
 	{
 		redraw(g_hWnd, true);
-	}
-	
+	}	
 }
-
 
 void video_sequence(HWND hWnd) {
 	cv::Mat frame;
@@ -729,31 +755,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					wss.str(wstring());
 
-					if (parking_events) {
-						wss << "Draw (ready)";
+					if (parking_draw) {
+						wss << "Draw";
 					} else {
 						wss << "Drawinig";
 					}
-					parking_events = !parking_events;
+					parking_draw = !parking_draw;
 
 					ModifyMenu(menu, ID_PARKING_DRAW, MF_BYCOMMAND | MF_STRING,
 						ID_PARKING_DRAW, wss.str().c_str());
 					DrawMenuBar(hWnd);
 				}
 				break;
-			case ID_PARKING_SAVE:
-				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
-					std::ofstream out(saveFileDialog.lpstrFile);
-					if (out.is_open()) {
-						TrackerViewParks(tracker, [&out](const Park& park) {
-							out << std::fixed
-								<< park.x << " " << park.y << " "
-								<< park.x2 << " " << park.y2 << std::endl;
-						});
+
+			case ID_PARKING_CHECK:
+				{
+					wstring buffer;
+					wstringstream wss;
+
+					HMENU menu = GetMenu(hWnd);
+
+					wss.str(wstring());
+
+					if (parking_check) {
+						wss << "Check";
 					}
-					out.close();
-				}, "Parking boxes (.txt)|*.txt");
+					else {
+						wss << "Checking";
+					}
+					parking_check = !parking_check;
+
+					ModifyMenu(menu, ID_PARKING_CHECK, MF_BYCOMMAND | MF_STRING,
+						ID_PARKING_CHECK, wss.str().c_str());
+					DrawMenuBar(hWnd);
+				}
 				break;
+
 			case ID_PARKING_LOAD:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
 					std::ifstream in(openFileDialog.lpstrFile);
@@ -768,8 +805,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					in.close();
 					redraw(hWnd);
+					}, "Parking boxes (.txt)|*.txt");
+				break;
+
+			case ID_PARKING_SAVE:
+				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
+					std::ofstream out(saveFileDialog.lpstrFile);
+					if (out.is_open()) {
+						TrackerViewParks(tracker, [&out](const Park& park) {
+							out << std::fixed
+								<< park.x << " " << park.y << " "
+								<< park.x2 << " " << park.y2 << std::endl;
+						});
+					}
+					out.close();
 				}, "Parking boxes (.txt)|*.txt");
 				break;
+
 			case ID_PARKING_CLEAR:
 				TrackerClearParking(tracker);
 				redraw(hWnd);
@@ -781,13 +833,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						capture = cv::VideoCapture{ openFileDialog.lpstrFile };
 
 						if (capture.isOpened()) {
+							cv::Mat frame;
+							capture >> frame;
+
+							if (frame.empty()) {
+								return;
+							}
+
+							if (image != nullptr) {
+								delete image;
+								image = nullptr;
+							}
+							if (ground != nullptr) {
+								delete ground;
+								ground = nullptr;
+							}
+
+							image = new cv::Mat();
+							ground = new cv::Mat();
+							frame.copyTo(*image);
+
+							resizeImage(frame.cols, frame.rows);
+							resizeWindow(frame.cols, frame.rows);
+							SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height, SWP_NOMOVE | SWP_NOREPOSITION);
+							UpdateWindow(hWnd);
+
 							{ // if parking info exists
 								int len = strlen(openFileDialog.lpstrFile);
 								openFileDialog.lpstrFile[len - 3] = 't';
 								openFileDialog.lpstrFile[len - 2] = 'x';
 								openFileDialog.lpstrFile[len - 1] = 't';
 								std::ifstream in(openFileDialog.lpstrFile);
-								
+
 								TrackerClearParking(tracker);
 								if (in.is_open()) {
 									float x, y, x2, y2;
@@ -799,75 +876,105 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								in.close();
 							}
 
-							cv::Mat frame;
-							capture >> frame;
-
-							if (frame.empty()) {
-								return;
-							}
-
-							resizeImage(frame.cols, frame.rows);
-							resizeWindow(frame.cols, frame.rows);
-							SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height, SWP_NOMOVE | SWP_NOREPOSITION);
-							UpdateWindow(hWnd);
-
-							if (image != nullptr) {
-								delete image;
-								image = nullptr;
-							}
-							if (ground != nullptr) {
-								delete ground;
-								ground = nullptr;
-							}
-							if (tracker != nullptr) {
-								TrackerRelease(tracker);
-							}
-							image = new cv::Mat();
-							ground = new cv::Mat();
-							tracker = TrackerInit(shape_image.width, shape_image.height);
-							frame.copyTo(*image);
-
-							redraw(hWnd);
-							if (g_Detector != nullptr) {
-								std::vector<Box> boxes;
-								results = DetectorDetect(g_Detector, *ground_resized);
-								for (const auto& box : *results) {
-									
-									boxes.push_back({
-										box.x / shape_image.width,
-										box.y / shape_image.width,
-										box.x2 / shape_image.width,
-										box.y2 / shape_image.width,
-										0, 0, 0, 0
-									});
-								}
-							}
-							redraw(hWnd);
+							TrackerClearTracking(tracker);
 							video_stop = TRUE;
+
+							redraw(hWnd);
 						}
 					}
 				}, "Video (.mp4)|*.mp4");
 				break;
+
+			case ID_TRACKING_LOADTRACKINGSTATE:
+				openFile([&](const OPENFILENAMEA& openFileDialog) {
+					std::ifstream in(openFileDialog.lpstrFile);
+
+					TrackerClearParking(tracker);
+					if (in.is_open()) {
+						int state;
+						float x, y, x2, y2;
+						while (in >> x >> y >> x2 >> y2 >> state) {
+							TrackerAddParking(tracker, x, y, x2, y2,
+											  static_cast<Park::State>(state));
+						}
+					}
+
+					in.close();
+					redraw(hWnd);
+					}, "Tracking States(.txt)|*.txt");
+				break;
+
+			case ID_TRACKING_SAVETRACKINGSTATE:
+				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
+					std::ofstream out(saveFileDialog.lpstrFile);
+					if (out.is_open()) {
+						TrackerViewParks(tracker, [&out](const Park& park) {
+							out << std::fixed
+								<< park.x << " " << park.y << " "
+								<< park.x2 << " " << park.y2 << " "
+								<< static_cast<int>(park.state) << std::endl;
+							});
+					}
+					out.close();
+					}, "Tracking States (.txt)|*.txt");
+				break;
+
 			case ID_TRACKING_START:
+			{
+				wstring buffer;
+				wstringstream wss;
+
+				HMENU menu = GetMenu(hWnd);
+
+				wss.str(wstring());
+
+				if (parking_check) {
+					wss << "Start";
+				}
+				else {
+					wss << "Stop";
+				}
+
+				ModifyMenu(menu, ID_TRACKING_START, MF_BYCOMMAND | MF_STRING,
+					ID_TRACKING_START, wss.str().c_str());
+				DrawMenuBar(hWnd);
+
 				video_stop = !video_stop;
-				
+
 				if (results != nullptr) {
 					delete results;
 					results = nullptr;
 				}
 
 				SetTimer(hWnd, 0, 5, NULL);
-				SetTimer(hWnd, 1, 1000, NULL);
+				SetTimer(hWnd, 1, 100, NULL);
 				break;
+			}
 
-			case ID_TRACKING_SAVESEQUENCES:
-				saveFile([](const OPENFILENAMEA& saveFileDialog) {
-				}, "Parking boxes (.txt)|*.txt");
+			case ID_ANGLE_3:
+			case ID_ANGLE_2_8:
+			case ID_ANGLE_2_6:
+			case ID_ANGLE_2_4:
+			case ID_ANGLE_2_2:
+			{
+				HMENU menu = GetMenu(hWnd);
+				CheckMenuItem(menu, ID_ANGLE_3, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_ANGLE_2_8, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_ANGLE_2_6, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_ANGLE_2_4, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_ANGLE_2_2, MF_UNCHECKED);
+
+				CheckMenuItem(menu, wmId, MF_CHECKED);
+
+				warp->angle = static_cast<float>(((ID_ANGLE_2_2 - wmId + 1) * .2f) + 2);
+				warp->Update();
+				redraw(hWnd);
 				break;
-
+			}
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
+
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -1045,14 +1152,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				image_temp.copyTo(*image);
 				redraw(hWnd);
 
-				TrackerViewTracks(tracker, [](const Track& track) {
-					cv::rectangle(image_show, {
-						static_cast<int>(track.boxes.back().x),
-						static_cast<int>(track.boxes.back().y),
-						static_cast<int>(track.boxes.back().x2 - track.boxes.back().x),
-						static_cast<int>(track.boxes.back().y2 - track.boxes.back().y),
-					}, cv::Scalar(COLOR_MAP[track.id + 0], COLOR_MAP[track.id + 1], COLOR_MAP[track.id + 2]), 1);
-				});
+				if (tracker != nullptr) {
+					TrackerViewTracks(tracker, [](const Track& track) {
+						cv::rectangle(image_show, {
+							static_cast<int>(track.boxes.back().x),
+							static_cast<int>(track.boxes.back().y),
+							static_cast<int>(track.boxes.back().x2 - track.boxes.back().x),
+							static_cast<int>(track.boxes.back().y2 - track.boxes.back().y),
+						}, Color::map(track.id), 1);
+					});
+				}
 				break;
 			}
 			case 1: // prediction if model loaded
@@ -1062,7 +1171,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				}
 
-				TrackerUpdate(tracker, *DetectorDetect(g_Detector, *ground_resized));
+				if (g_Detector != nullptr && tracker != nullptr) {
+					TrackerUpdate(tracker, *DetectorDetect(g_Detector, *ground_resized));
+				}
 			}
 		}
 		break;
@@ -1074,27 +1185,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONDOWN:
-		if (parking_events) {
-			parking_rc.left = LOWORD(lParam) - shape_image.width;
-			parking_rc.top = HIWORD(lParam);
+		{
+			long X = LOWORD(lParam) - shape_image.width, Y = HIWORD(lParam);
+			if (parking_draw) {
+				parking_rc.left = X;
+				parking_rc.top = Y;
 
-			if (parking_rc.left < 0) {
-				parking_rc.left = parking_rc.top = 0;
+				if (parking_rc.left < 0) {
+					parking_rc.left = parking_rc.top = 0;
+				}
 			}
-		}
-		break;
 
+			if (parking_check) {
+				float XX = X / static_cast <float>(shape_image.width);
+				float YY = Y / static_cast <float>(shape_image.width);
+				TrackerViewParks(tracker, [XX, YY](Park& park) {
+					if (park.x <= XX && XX <= park.x2 && park.y <= YY && YY <= park.y2) {
+						park.state = static_cast<Park::State>((static_cast<int>(park.state) + 1) % 3);
+					}
+				});
+				redraw(hWnd);
+			}
+			break;
+		}
 	case WM_MOUSEMOVE:
-		if (parking_events) {
+		if (parking_draw) {
 			if (parking_rc.left > 0 && parking_rc.top > 0) {
 				parking_rc.right = LOWORD(lParam) - shape_image.width;
 				parking_rc.bottom = HIWORD(lParam);
-
 				cv::rectangle(image_show, {
-					parking_rc.left, parking_rc.top,
-					parking_rc.right - parking_rc.left,
-					parking_rc.bottom - parking_rc.top,
-				}, cv::Scalar{0 ,255, 0}, 2);
+					MIN(parking_rc.left, parking_rc.right),
+					MIN(parking_rc.top, parking_rc.bottom),
+				}, {
+					MAX(parking_rc.left, parking_rc.right),
+					MAX(parking_rc.top, parking_rc.bottom)
+				}, Color(Park::State::empty).color(), 2);
 				InvalidateRect(hWnd, NULL, NULL);
 			}
 			parking_rc.right = parking_rc.bottom = 0;
@@ -1102,7 +1227,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONUP:
-		if (parking_events) {
+		if (parking_draw) {
 			if (parking_rc.left > 0 && parking_rc.top > 0) {
 				parking_rc.right = LOWORD(lParam) - shape_image.width;
 				parking_rc.bottom = HIWORD(lParam);
@@ -1145,8 +1270,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         return (INT_PTR)TRUE;
 
     case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }

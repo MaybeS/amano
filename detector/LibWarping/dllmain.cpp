@@ -98,7 +98,7 @@ void Warp::Update() {
 	switch (plane_mode) {
 		case 0: MakePlaneRays(output_size, center, up, right, &rays); break;
 		case 1: MakeCylinderRays(output_size, center, right, 90, &rays); break;
-		case 2: MakeCylinderAngleRays(output_size, center, right, 90, &rays); break;
+		case 2: MakeCylinderAngleRays(output_size, center, right, 90, &rays, angle); break;
 	}
 	this->calib.ConvertRays2Pixels(rays, &pix_x, &pix_y);
 }

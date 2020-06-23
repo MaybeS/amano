@@ -153,8 +153,8 @@ BEGIN
     BEGIN
         MENUITEM "Open",                        ID_FILE_OPEN,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Save",                        ID_FILE_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM "Load",                        ID_FILE_LOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save",                        ID_FILE_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT,MFT_STRING,MFS_ENABLED
     END
@@ -170,10 +170,11 @@ BEGIN
     END
     POPUP "Parking",                        65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Draw (ready)",                ID_PARKING_DRAW,MFT_STRING,MFS_ENABLED
+        MENUITEM "Draw",                        ID_PARKING_DRAW,MFT_STRING,MFS_ENABLED
+        MENUITEM "Check",                       ID_PARKING_CHECK,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Save",                        ID_PARKING_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM "Load",                        ID_PARKING_LOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save",                        ID_PARKING_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Clear",                       ID_PARKING_CLEAR,MFT_STRING,MFS_ENABLED
     END
@@ -181,9 +182,18 @@ BEGIN
     BEGIN
         MENUITEM "Load video",                  ID_TRACKING_LOADVIDEO,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Start / Stop",                ID_TRACKING_START,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load Tracking State",         ID_TRACKING_LOADTRACKINGSTATE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save Tracking State",         ID_TRACKING_SAVETRACKINGSTATE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Save sequences",              ID_TRACKING_SAVESEQUENCES,MFT_STRING,MFS_ENABLED
+        MENUITEM "Start",                       ID_TRACKING_START,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "Angle",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "3",                           ID_ANGLE_3,MFT_STRING,MFS_CHECKED
+        MENUITEM "2.8",                         ID_ANGLE_2_8,MFT_STRING,MFS_ENABLED
+        MENUITEM "2.6",                         ID_ANGLE_2_6,MFT_STRING,MFS_ENABLED
+        MENUITEM "2.4",                         ID_ANGLE_2_4,MFT_STRING,MFS_ENABLED
+        MENUITEM "2.2",                         ID_ANGLE_2_2,MFT_STRING,MFS_ENABLED
     END
     POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN

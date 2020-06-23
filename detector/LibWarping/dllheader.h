@@ -38,6 +38,8 @@ public:
 	Mat rays;
 	Mat pix_x, pix_y;
 
+	float angle = 3.f;
+
 	Warp(const Calibration& calib, const Size& output_sz, int plane_mode);
 
 	void Update();

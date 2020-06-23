@@ -72,7 +72,7 @@ void MakeImageRays(const Size& sz, float fov, float h_dir, float v_dir, bool upr
 	}
 }
 
-void MakeCylinderAngleRays(const Size& sz, const Vec3f& center, const Vec3f& right, float deg, Mat* rays) {
+void MakeCylinderAngleRays(const Size& sz, const Vec3f& center, const Vec3f& right, float deg, Mat* rays, float angle) {
 	const double d2r = CV_PI / 180;
 	const int w = sz.width, h = sz.height;
 	const Vec3f up = NormalizeVec3f(right.cross(center));
@@ -86,7 +86,7 @@ void MakeCylinderAngleRays(const Size& sz, const Vec3f& center, const Vec3f& rig
 		const double th = (y * dr - 1.0) * deg * d2r;
 		const Vec3f ray_y = -sin(th) * up + cos(th) * front;
 		for (int x = 0; x < sz.width; ++x) {
-			double xx = tan((x - sz.width / 2.f) / (sz.width / 2.f) * (CV_PI / 3));
+			double xx = tan((x - sz.width / 2.f) / (sz.width / 2.f) * (CV_PI / angle));
 
 			const Vec3f r = NormalizeVec3f(ray_y + xx * right);
 			memcpy(rays->ptr(y, x), r.val, sizeof(float) * 3);

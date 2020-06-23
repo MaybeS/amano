@@ -116,7 +116,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\KJH\LIBRARY\OpenCV\opencv-4.1.0-vc14_vc15\opencv\build\x64\vc15\lib;C:\utility\opencv\opencv\x64\vc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world411d.lib;acognitive_post.lib;LibDetection.lib;LibWarping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world411d.lib;acognitive_post.lib;LibDetection.lib;LibWarping.lib;LibTracking.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

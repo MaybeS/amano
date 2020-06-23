@@ -3,7 +3,10 @@
 
 template<typename T = float>
 T iou(T p1x1, T p1y1, T p1x2, T p1y2,
-    T p2x1, T p2y1, T p2x2, T p2y2) {
+      T p2x1, T p2y1, T p2x2, T p2y2) {
+    p1x1 *= 1000.f; p1y1 *= 1000.f; p1x2 *= 1000.f; p1y2 *= 1000.f;
+    p2x1 *= 1000.f; p2y1 *= 1000.f; p2x2 *= 1000.f; p2y2 *= 1000.f;
+
     T overlap_x0 = std::max(p1x1, p2x1), overlap_y0 = std::max(p1y1, p2y1);
     T overlap_x1 = std::min(p1x2, p2x2), overlap_y1 = std::min(p1y2, p2y2);
 

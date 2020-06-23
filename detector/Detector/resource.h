@@ -44,6 +44,18 @@
 #define ID_TRACKING_START               32799
 #define ID_TRACKING_STOP                32800
 #define ID_DETECT_CLEAR                 32801
+#define ID_Menu32802                    32802
+#define ID_TRACKING_SAVETRACKINGSTATE   32803
+#define ID_Menu32804                    32804
+#define ID_TRACKING_STATEFROMINFERENCE  32805
+#define ID_PARKING_CHECK                32806
+#define ID_TRACKING111                  32807
+#define ID_TRACKING_LOADTRACKINGSTATE   32808
+#define ID_ANGLE_3                      32809
+#define ID_ANGLE_2_8                    32810
+#define ID_ANGLE_2_6                    32811
+#define ID_ANGLE_2_4                    32812
+#define ID_ANGLE_2_2                    32813
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -52,7 +64,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32802
+#define _APS_NEXT_COMMAND_VALUE         32819
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
