@@ -187,6 +187,18 @@ BEGIN
         MENUITEM MFT_SEPARATOR
         MENUITEM "Start",                       ID_TRACKING_START,MFT_STRING,MFS_ENABLED
     END
+    POPUP "Interval",                       65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "1",                           ID_INTERVAL_1,MFT_STRING,MFS_ENABLED
+        MENUITEM "10",                          ID_INTERVAL_10,MFT_STRING,MFS_CHECKED
+        MENUITEM "100",                         ID_INTERVAL_100,MFT_STRING,MFS_ENABLED
+        MENUITEM "1000",                        ID_INTERVAL_1000,MFT_STRING,MFS_ENABLED
+        MENUITEM "3000",                        ID_INTERVAL_3000,MFT_STRING,MFS_ENABLED
+        MENUITEM "5000",                        ID_INTERVAL_5000,MFT_STRING,MFS_ENABLED
+        MENUITEM "10000",                       ID_INTERVAL_10000,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "1000 == 1s",                  ID_INTERVAL_1001,MFT_STRING,MFS_GRAYED | MFS_CHECKED
+    END
     POPUP "Angle",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
         MENUITEM "3",                           ID_ANGLE_3,MFT_STRING,MFS_CHECKED

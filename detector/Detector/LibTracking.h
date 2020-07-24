@@ -14,9 +14,9 @@
 #endif
 
 struct LIB_TRACKING Track {
-    size_t id;
+    int id;
     std::vector<Box> boxes;
-    size_t start;
+    int start;
     float score;
 };
 
@@ -25,18 +25,19 @@ struct LIB_TRACKING Park {
     enum class State {
         empty, parking, parking_invisible,
     } state;
+    bool isEntering, isExiting;
 
 public:
-    bool isEmpty() {
+    bool isEmpty() const {
         return this->state == State::empty;
     }
-    bool isParking() {
+    bool isExist() const {
         return this->state >= State::parking;
     }
-    bool isVisible() {
+    bool isVisible() const  {
         return this->state == State::parking;
     }
-    bool isParkingInvisible() {
+    bool isInvisible() const  {
         return this->state == State::parking_invisible;
     }
 };
@@ -47,9 +48,10 @@ extern "C" LIB_TRACKING Tracker* _stdcall TrackerInit(int width, int height);
 extern "C" LIB_TRACKING long _stdcall TrackerRelease(Tracker* AHandle);
 extern "C" LIB_TRACKING long _stdcall TrackerSetParam(Tracker* AHandle, int width, int height,
                                                       float sigma_l = 0.f, float sigma_h = .5f,
-                                                      float sigma_iou = .5f, size_t t_min = 5, size_t dist_min = 30);
+                                                      float sigma_iou = .5f, int t_min = 5,
+                                                      float dist_min = .005f, int track_step = 5);
 
-extern "C" LIB_TRACKING long _stdcall TrackerUpdate(Tracker* AHandle, const std::vector<Box>& boxes);
+extern "C" LIB_TRACKING long _stdcall TrackerUpdate(Tracker * AHandle, std::vector<Box> * boxes);
 
 extern "C" LIB_TRACKING long _stdcall TrackerClearTracking(Tracker* AHandle);
 extern "C" LIB_TRACKING long _stdcall TrackerClearParking(Tracker* AHandle);

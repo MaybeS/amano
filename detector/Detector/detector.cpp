@@ -11,11 +11,12 @@
 
 #include "acognitive_post_def.h"
 #include "parking.h"
+#include "color.h"
 #include "LibDetection.h"
 #include "LibWarping.h"
 #include "LibTracking.h"
+#include "logger.h"
 
-using namespace std;
 
 #define MAX_LOADSTRING 100
 
@@ -56,71 +57,18 @@ Warp		*warp = nullptr;
 BOOL		parking_draw = FALSE;
 BOOL		parking_check = FALSE;
 RECT		parking_rc{ 0, 0, 0, 0 };
+float		parking_last_x = 0, parking_last_y = 0;
 
 AP_HANDLE	g_ApHandle = nullptr;
 char		g_ACognitiveUrl[256] = {0};
 BOOL		g_UnderFlip = FALSE;
 HWND		g_hWnd = nullptr;
 
+int detection_interval = 10;
 Tracker*	tracker = nullptr;
 BOOL		video_stop = TRUE;
 cv::VideoCapture capture;
-
-class Color {
-public:
-	enum class Value {
-		empty, parking, parking_invisible, 
-	} value;
-
-	Color() = default;
-	constexpr Color(Value value)
-		: value(value) {}
-	constexpr Color(Park::State state)
-		: value(static_cast<Value>(static_cast<int>(state))) {}
-
-	operator Value() const { return value; }
-	explicit operator bool() = delete;
-
-	cv::Scalar color() {
-		switch (value) {
-			case Value::empty:
-				return cv::Scalar{0, 0, 255};
-			case Value::parking:
-				return cv::Scalar{0, 255, 0};
-			case Value::parking_invisible:
-				return cv::Scalar{0, 255, 255};
-		}
-	}
-
-	static cv::Scalar map(int seed = 0) {
-		size_t MAP_SIZE = 210;
-		size_t MAP[] = {
-			59,76,192,60,78,194,61,80,195,62,81,197,63,83,
-			198,64,85,200,66,87,201,67,88,203,68,90,204,69,
-			92,206,70,93,207,71,95,209,73,97,210,74,99,211,
-			75,100,213,76,102,214,77,104,215,79,105,217,
-			80,107,218,81,109,219,82,110,221,84,112,222,
-			85,114,223,86,115,224,87,117,225,89,119,226,
-			90,120,228,91,122,229,93,123,230,94,125,231,
-			95,127,232,96,128,233,98,130,234,99,131,235,
-			100,133,236,102,135,237,103,136,238,104,138,239,
-			106,139,239,107,141,240,108,142,241,110,144,242,
-			111,145,243,112,147,243,114,148,244,115,150,245,
-			116,151,246,118,153,246,119,154,247,120,156,247,
-			122,157,248,123,158,249,124,160,249,126,161,250,
-			127,163,250,129,164,251,130,165,251,131,167,252,
-			133,168,252,134,169,252,135,171,253,137,172,253,
-			138,173,253,140,174,254,141,176,254,142,177,254,
-			144,178,254,145,179,254,147,181,255,148,182,255,
-		};
-
-		return cv::Scalar(
-			MAP[seed % MAP_SIZE],
-			MAP[(seed+1) % MAP_SIZE],
-			MAP[(seed+2) % MAP_SIZE]
-		);
-	}
-};
+Logger logger;
 
 void resizeImage(int width, int height) {
 	shape_raw.width = width;
@@ -158,7 +106,7 @@ void resizeWindow(int width, int height) {
 //	warp = new Warp(*calib, shape_window);
 }
 
-BOOL openFile(function<void(const OPENFILENAMEA&)> callback, const char* filter = nullptr) {
+BOOL openFile(std::function<void(const OPENFILENAMEA&)> callback, const char* filter = nullptr) {
 	OPENFILENAMEA openFileDialog;
 
 	strcpy(szFileName, "");
@@ -186,7 +134,7 @@ BOOL openFile(function<void(const OPENFILENAMEA&)> callback, const char* filter 
 	return FALSE;
 }
 
-void saveFile(function<void(const OPENFILENAMEA&)> callback, const char* filter = nullptr) {
+void saveFile(std::function<void(const OPENFILENAMEA&)> callback, const char* filter = nullptr) {
 	OPENFILENAMEA openFileDialog;
 
 	// DEBUG
@@ -213,29 +161,42 @@ void saveFile(function<void(const OPENFILENAMEA&)> callback, const char* filter 
 	}
 }
 
-void indicator(HWND hWnd) {
-	wstring buffer;
-	wstringstream wss;
+void menu_rename(HWND hWnd, const char* string, UINT menu_id, UINT flag = MF_BYCOMMAND | MF_STRING) {
+	std::wstring buffer;
+	std::wstringstream wss;
+
 	HMENU menu = GetMenu(hWnd);
 
-	wss.str(wstring());
+	wss.str(std::wstring());
+	wss << string;
+
+	ModifyMenu(menu, menu_id, flag, menu_id, wss.str().c_str());
+	DrawMenuBar(hWnd);
+}
+
+void indicator(HWND hWnd) {
+	std::wstring buffer;
+	std::wstringstream wss;
+	HMENU menu = GetMenu(hWnd);
+
+	wss.str(std::wstring());
 	wss << "Center: (" << calib->cx << ", " << calib->cy << ")";
 	ModifyMenu(menu, ID_CENTER, MF_BYCOMMAND | MF_STRING, ID_CENTER, wss.str().c_str());
 
-	wss.str(wstring());
+	wss.str(std::wstring());
 	wss << "F: (" << calib->fx << ", " << calib->fy << ")";
 	ModifyMenu(menu, ID_F, MF_BYCOMMAND | MF_STRING, ID_F, wss.str().c_str());
 
-	wss.str(wstring());
-	wss << "CV: (" << setprecision(2) << warp->center.val[0] << ", " << warp->center.val[1] << ", " << warp->center.val[2] << ")";
+	wss.str(std::wstring());
+	wss << "CV: (" << std::setprecision(2) << warp->center.val[0] << ", " << warp->center.val[1] << ", " << warp->center.val[2] << ")";
 	ModifyMenu(menu, ID_CV, MF_BYCOMMAND | MF_STRING, ID_CV, wss.str().c_str());
 
-	wss.str(wstring());
-	wss << "UV: (" << setprecision(2) << warp->up.val[0] << ", " << warp->up.val[1] << ", " << warp->up.val[2] << ")";
+	wss.str(std::wstring());
+	wss << "UV: (" << std::setprecision(2) << warp->up.val[0] << ", " << warp->up.val[1] << ", " << warp->up.val[2] << ")";
 	ModifyMenu(menu, ID_UV, MF_BYCOMMAND | MF_STRING, ID_UV, wss.str().c_str());
 
-	wss.str(wstring());
-	wss << "RV: (" << setprecision(2) << warp->right.val[0] << ", " << warp->right.val[1] << ", " << warp->right.val[2] << ")";
+	wss.str(std::wstring());
+	wss << "RV: (" << std::setprecision(2) << warp->right.val[0] << ", " << warp->right.val[1] << ", " << warp->right.val[2] << ")";
 	ModifyMenu(menu, ID_RV, MF_BYCOMMAND | MF_STRING, ID_RV, wss.str().c_str());
 
 	DrawMenuBar(hWnd);
@@ -272,7 +233,7 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 				results = nullptr;
 			}
 
-			results = new vector<Box>();
+			results = new std::vector<Box>();
 			for (const auto& element : *DetectorDetect(g_Detector, up)) {
 				results->emplace_back(element);
 			}
@@ -315,12 +276,37 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 	}
 
 	TrackerViewParks(tracker, [](const Park& park) {
+		cv::Scalar color = Color(park.state).color();
+
+		if (park.isEntering) {
+			color = cv::Scalar{ 255, 0, 255 };
+		} else if (park.isExiting) {
+			color = cv::Scalar{ 255, 255, 0 };
+		}
+
 		cv::rectangle(image_show, {
 			static_cast<int>(park.x * shape_image.width),
 			static_cast<int>(park.y * shape_image.width),
 			static_cast<int>((park.x2 - park.x) * shape_image.width),
 			static_cast<int>((park.y2 - park.y) * shape_image.width),
-		}, Color(park.state).color(), 2);
+		}, color, 2);
+
+		std::stringstream stream;
+		if (park.isEntering) {
+			stream << "Entering";
+		} else if (park.isExiting) {
+			stream << "Leaving";
+		} else if (park.isEmpty()) {
+			stream << "Empty";
+		} else if (park.isVisible()) {
+			stream << "Detected";
+		} else {
+			stream << "NotDetected";
+		}
+
+		cv::putText(image_show, stream.str(), 
+			cv::Point{ static_cast<int>(park.x * shape_image.width), static_cast<int>(park.y * shape_image.width) },
+			FONT_HERSHEY_PLAIN, 2, cv::Scalar{ 255, 0, 0 });
 	});
 
 	ground_map = new Gdiplus::Bitmap(
@@ -357,7 +343,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ground_resized = new cv::Mat();
 
 	if (!openFile([&](const OPENFILENAMEA& openFileDialog) {
-		image = new cv::Mat(cv::imread(string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
+		image = new cv::Mat(cv::imread(std::string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
 		ground = new cv::Mat();
 
 		resizeImage(image->cols, image->rows);
@@ -531,7 +517,7 @@ void CarDetect(int AType)
 			compression_params.push_back(1);// CV_IMWRITE_JPEG_QUALITY);
 			compression_params.push_back(tJpgCompression);
 			// 새로 이미지처리 Acognitive 요청.
-			vector<uchar> buf;
+			std::vector<uchar> buf;
 			cv::imencode(".jpg", *ground_resized, buf, compression_params);
 
 			ap_Request_ImageBuf(g_ApHandle, g_ACognitiveUrl, buf.data(), buf.size(), "detector_test", FALSE);
@@ -610,7 +596,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				adjust_flag = true;
 				resizeWindow(nWidth, nHeight);
 				SetWindowPos(hWnd, NULL, 0, 0, shape_window.width, shape_window.height,
-					SWP_NOSENDCHANGING | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+							 SWP_NOSENDCHANGING | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
 				redraw(hWnd);
 			} else {
 				adjust_flag = false;
@@ -678,7 +664,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						delete ground;
 						ground = nullptr;
 					}
-					image = new cv::Mat(cv::imread(string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
+					image = new cv::Mat(cv::imread(std::string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
 					ground = new cv::Mat();
 
 					//resizeImage(image->cols, image->rows);
@@ -748,46 +734,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case ID_PARKING_DRAW:
 				{
-					wstring buffer;
-					wstringstream wss;
-
-					HMENU menu = GetMenu(hWnd);
-
-					wss.str(wstring());
-
-					if (parking_draw) {
-						wss << "Draw";
-					} else {
-						wss << "Drawinig";
-					}
+					menu_rename(hWnd, parking_draw ? "Draw" : "Drawinig", ID_PARKING_DRAW);
 					parking_draw = !parking_draw;
-
-					ModifyMenu(menu, ID_PARKING_DRAW, MF_BYCOMMAND | MF_STRING,
-						ID_PARKING_DRAW, wss.str().c_str());
-					DrawMenuBar(hWnd);
 				}
 				break;
 
 			case ID_PARKING_CHECK:
 				{
-					wstring buffer;
-					wstringstream wss;
-
-					HMENU menu = GetMenu(hWnd);
-
-					wss.str(wstring());
-
-					if (parking_check) {
-						wss << "Check";
-					}
-					else {
-						wss << "Checking";
-					}
+					menu_rename(hWnd, parking_draw ? "Check" : "Checking", ID_PARKING_DRAW);
 					parking_check = !parking_check;
-
-					ModifyMenu(menu, ID_PARKING_CHECK, MF_BYCOMMAND | MF_STRING,
-						ID_PARKING_CHECK, wss.str().c_str());
-					DrawMenuBar(hWnd);
 				}
 				break;
 
@@ -829,7 +784,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case ID_TRACKING_LOADVIDEO:
 				openFile([&](const OPENFILENAMEA& openFileDialog) {
-					if (!capture.isOpened()) {
+					if (video_stop) {
+						if (capture.isOpened()) {
+							capture.release();
+						}
+						logger = Logger{ openFileDialog.lpstrFile };
 						capture = cv::VideoCapture{ openFileDialog.lpstrFile };
 
 						if (capture.isOpened()) {
@@ -921,24 +880,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case ID_TRACKING_START:
 			{
-				wstring buffer;
-				wstringstream wss;
-
-				HMENU menu = GetMenu(hWnd);
-
-				wss.str(wstring());
-
-				if (parking_check) {
-					wss << "Start";
-				}
-				else {
-					wss << "Stop";
-				}
-
-				ModifyMenu(menu, ID_TRACKING_START, MF_BYCOMMAND | MF_STRING,
-					ID_TRACKING_START, wss.str().c_str());
-				DrawMenuBar(hWnd);
-
+				menu_rename(hWnd, video_stop ? "Stop" : "Start", ID_TRACKING_START);
 				video_stop = !video_stop;
 
 				if (results != nullptr) {
@@ -946,8 +888,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					results = nullptr;
 				}
 
-				SetTimer(hWnd, 0, 5, NULL);
-				SetTimer(hWnd, 1, 100, NULL);
+				if (video_stop) {
+					KillTimer(hWnd, 0);
+					KillTimer(hWnd, 1);
+				}
+				else {
+					SetTimer(hWnd, 0, 5, NULL);
+					SetTimer(hWnd, 1, detection_interval, NULL);
+				}
+				break;
+			}
+
+			case ID_INTERVAL_1:
+			case ID_INTERVAL_10:
+			case ID_INTERVAL_100:
+			case ID_INTERVAL_1000:
+			case ID_INTERVAL_3000:
+			case ID_INTERVAL_5000:
+			case ID_INTERVAL_10000:
+			{
+				HMENU menu = GetMenu(hWnd);
+				CheckMenuItem(menu, ID_INTERVAL_1, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_10, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_100, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_1000, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_3000, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_5000, MF_UNCHECKED);
+				CheckMenuItem(menu, ID_INTERVAL_10000, MF_UNCHECKED);
+
+				CheckMenuItem(menu, wmId, MF_CHECKED);
+
+				if (wmId == ID_INTERVAL_3000) {
+					detection_interval = 3000;
+				} else if (wmId == ID_INTERVAL_5000) {
+					detection_interval = 5000;
+				} else {
+					detection_interval = pow(10, wmId - ID_INTERVAL_1);
+				}
+
+
+				KillTimer(hWnd, 1);
+				SetTimer(hWnd, 1, detection_interval, NULL);
 				break;
 			}
 
@@ -1036,7 +1017,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				switch (wParam) {
 					case 'O':
 						openFile([&](const OPENFILENAMEA& openFileDialog) {
-							image = new cv::Mat(cv::imread(string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
+							image = new cv::Mat(cv::imread(std::string(openFileDialog.lpstrFile), cv::IMREAD_COLOR));
 							ground = new cv::Mat();
 
 							resizeImage(image->cols, image->rows);
@@ -1118,6 +1099,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					case '8':
 						CarDetect(2);
 						break;
+					case 0x08:
+						if (parking_draw) {
+							float x = parking_last_x;
+							float y = parking_last_y;
+							auto park_ = TrackerParks(tracker);
+							std::vector<Park> parks = std::vector<Park>(park_.begin(), park_.end());
+							auto iter = std::find_if(parks.begin(), parks.end(), [x, y](const Park& park) {
+								return park.x <= x && x <= park.x2 && park.y <= y && y <= park.y2;
+							});
+							if (iter != parks.end()) {
+								parks.erase(iter);
+								TrackerSetParking(tracker, parks);
+								redraw(hWnd);
+							}
+						}
+						// Delete parking state
+						break;
 					default:
 						break;
 				}
@@ -1172,7 +1170,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 
 				if (g_Detector != nullptr && tracker != nullptr) {
-					TrackerUpdate(tracker, *DetectorDetect(g_Detector, *ground_resized));
+					auto detection_result = DetectorDetect(g_Detector, *ground_resized);
+					logger.write_detection([detection_result](std::ofstream& stream) {
+						for (auto box : *detection_result) {
+							stream << std::fixed << box.prob << " "
+								   << box.x << " " << box.y << " "
+								   << box.x2 << " " << box.y2 << std::endl;
+						}
+					});
+					TrackerUpdate(tracker, detection_result);
+					auto tracks = TrackerTracks(tracker);
+					logger.write_tracking([&tracks](std::ofstream& stream) {
+						for (auto track : tracks) {
+							stream << std::fixed << track->id << " " << track->score << " " 
+								<< track->boxes.back().x << " " << track->boxes.back().y << " "
+								<< track->boxes.back().x2 << " " << track->boxes.back().y2 << std::endl;
+						}
+					});
+					auto parks = TrackerParks(tracker);
+					logger.write_parking([&parks](std::ofstream& stream) {
+						for (auto park : parks) {
+							stream << std::fixed
+								<< park.x << " " << park.y << " "
+								<< park.x2 << " " << park.y2 << " ";
+							
+							if (park.isEntering) {
+								stream << "Entering";
+							} else if (park.isExiting) {
+								stream << "Leaving";
+							} else if (park.isEmpty()) {
+								stream << "Empty";
+							} else if (park.isVisible()) {
+								stream << "Detected";
+							} else {
+								stream << "NotDetected";
+							}
+
+							stream << std::endl;
+						}
+					});
 				}
 			}
 		}
@@ -1194,6 +1230,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (parking_rc.left < 0) {
 					parking_rc.left = parking_rc.top = 0;
 				}
+
+				parking_last_x = parking_rc.left / static_cast<float>(shape_image.width);
+				parking_last_y = parking_rc.top / static_cast<float>(shape_image.width);
 			}
 
 			if (parking_check) {
@@ -1242,8 +1281,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					redraw(hWnd);
 				}
 			}
-			parking_rc.left = parking_rc.top = 0;
-			parking_rc.right = parking_rc.bottom = 0;
+			parking_rc.left = parking_rc.right = 0;
+			parking_rc.top = parking_rc.bottom = 0;
+
 		}
 		break;
 

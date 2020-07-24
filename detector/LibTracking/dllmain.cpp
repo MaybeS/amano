@@ -3,21 +3,23 @@
 #include <set>
 
 Tracker::Tracker(int width, int height,
-                          float sigma_l, float sigma_h ,
-                          float sigma_iou, size_t t_min, size_t dist_min)
+                 float sigma_l, float sigma_h ,
+                 float sigma_iou, int t_min,
+                 float dist_min, int track_step)
     : width(width), height(height),
     sigma_l(sigma_l), sigma_h(sigma_h),
-    sigma_iou(sigma_iou), t_min(t_min), dist_min(dist_min),
+    sigma_iou(sigma_iou), t_min(t_min),
+    dist_min(dist_min), track_step(track_step),
     frame_count(0), track_count(0) {
 };
 
-void Tracker::update(std::vector<Box> detections) {
+void Tracker::update(std::vector<Box>* detections) {
     float _iou;
     std::set<Park*> checked;
 
     // find hard-positive examples
     for (auto& park : parkings) {
-        for (const auto& box : detections) {
+        for (const auto& box : *detections) {
             _iou = iou(box.x / static_cast<float>(width),
                        box.y / static_cast<float>(width),
                        box.x2 / static_cast<float>(width),
@@ -25,9 +27,9 @@ void Tracker::update(std::vector<Box> detections) {
                        park.x, park.y, park.x2, park.y2);
 
             if (_iou > iou_thresh) {
-                if (park.state != Park::State::parking_invisible) {
-                    park.state = Park::State::parking;
-                }
+                park.state = Park::State::parking;
+                park.isExiting = false;
+                park.isEntering = false;
                 checked.insert(&park);
                 break;
             }
@@ -38,14 +40,14 @@ void Tracker::update(std::vector<Box> detections) {
     for (Track* track : track_active) {
         const auto& src = track->boxes.back();
 
-        if (!detections.empty()) {
+        if (!detections->empty()) {
             float max_iou = 0.f;
             size_t max_j = 0;
-            for (size_t j = 0; j < detections.size(); j++) {
-                const auto& tar = detections[j];
+            for (size_t j = 0; j < detections->size(); j++) {
+                const auto& tar = detections->at(j);
 
                 _iou = iou(src.x, src.y, src.x2, src.y2,
-                    tar.x, tar.y, tar.x2, tar.y2);
+                           tar.x, tar.y, tar.x2, tar.y2);
                 if (max_iou < _iou) {
                     max_iou = _iou;
                     max_j = j;
@@ -53,11 +55,12 @@ void Tracker::update(std::vector<Box> detections) {
             }
 
             if (max_iou > sigma_iou) {
-                track->boxes.emplace_back(detections[max_j]);
-                track->score = std::max(track->score, detections[max_j].prob);
+                track->boxes.emplace_back(detections->at(max_j));
+                track->score = std::max(track->score, detections->at(max_j).prob);
+                track_gc(track);
 
                 track_update.emplace_back(track);
-                detections.erase(detections.begin() + max_j);
+                detections->erase(detections->begin() + max_j);
             }
         }
 
@@ -67,7 +70,7 @@ void Tracker::update(std::vector<Box> detections) {
         }
     }
 
-    for (const auto& detection : detections) {
+    for (auto detection : *detections) {
         track_update.push_back(new Track{
             track_count++, {detection}, frame_count, detection.prob,
         });
@@ -81,50 +84,43 @@ void Tracker::update(std::vector<Box> detections) {
     // update parking check
     for (auto& park : parkings) {
         float max_iou = 0.f;
-        Park::State max_state;
+        const Track* max_track{ nullptr };
 
         if (checked.find(&park) != checked.end()) {
             continue;
         }
 
         for (const auto& track : track_active) {
-            if (abs(track->boxes.back().y - track->boxes.front().y) > dist_min ||
-                track->boxes.size() < t_min) {
+            _iou = iou(track->boxes.back().x / static_cast<float>(width),
+                track->boxes.back().y / static_cast<float>(width),
+                track->boxes.back().x2 / static_cast<float>(width),
+                track->boxes.back().y2 / static_cast<float>(width),
+                park.x, park.y, park.x2, park.y2);
 
-                _iou = iou(track->boxes.back().x / static_cast<float>(width),
-                    track->boxes.back().y / static_cast<float>(width),
-                    track->boxes.back().x2 / static_cast<float>(width),
-                    track->boxes.back().y2 / static_cast<float>(width),
-                    park.x, park.y, park.x2, park.y2);
-
-                if (max_iou < _iou) {
-                    max_iou = _iou;
-
-                    if (track->boxes.size() < t_min) {
-                        max_state = Park::State::empty;
-                    } else if (!((track->boxes.front().y < height / 2) ^
-                        (track->boxes.back().y - track->boxes.front().y < 0))) {
-                        // enter
-                        max_state = Park::State::parking_invisible;
-                    } else if (abs(track->boxes.back().y - track->boxes.front().y) > dist_min) {
-                        // exit
-                        max_state = Park::State::empty;
-                    } else {
-                        max_state = park.state;
-                    }
-                }
+            if (max_iou < _iou) {
+                max_iou = _iou;
+                max_track = track;
             }
         }
 
         if (max_iou > iou_thresh) {
             // hard positive
             park.state = Park::State::parking;
-        }
-        else if (0 < max_iou && max_iou < iou_min_thresh) {
+        } else if (iou_min_thresh < max_iou) {
             // weak positive
-            park.state = max_state;
-        }
-        else {
+            if (isExiting(park, *max_track)) {
+                park.state = Park::State::empty;
+                park.isExiting = true;
+                park.isEntering = false;
+            } else if (isEntering(park, *max_track)) {
+                park.state = Park::State::parking_invisible;
+                park.isExiting = false;
+                park.isEntering = true;
+            } else {
+                park.state = park.state;
+            }
+        } else {
+            // not detected
             if (park.state == Park::State::parking) {
                 park.state = Park::State::parking_invisible;
             }
@@ -138,6 +134,113 @@ void Tracker::finish() {
             track_finish.emplace_back(track);
         }
     }
+}
+
+void Tracker::track_gc(Track* track) {
+    if (track->boxes.size() < 300) {
+        return;
+    }
+    track->boxes.erase(track->boxes.begin(), track->boxes.begin() + 250);
+}
+
+bool Tracker::assert_step(const Track& track) {
+    return track.boxes.size() > track_step;
+}
+
+bool Tracker::isEntering(const Park& park, const Track& track) {
+    if (!assert_step(track)) {
+        return false;
+    }
+
+    std::vector<std::tuple<float, float>> points;
+    size_t size = track.boxes.size();
+    bool up_side = track.boxes.front().y < height / 2.f;
+    float pcx = (park.x + park.x2) / 2.f, pcy = (park.y + park.y2) / 2.f;
+
+    for (size_t index = 0; index + track_step < size; index += track_step) {
+        float tx = 0.f, ty = 0.f;
+        for (size_t j = index; j < index + track_step; j++) {
+            tx += ((track.boxes[j].x + track.boxes[j].x2) * .5f) / static_cast<float>(width);
+            ty += ((track.boxes[j].y + track.boxes[j].y2) * .5f) / static_cast<float>(width);
+        }
+        tx /= track_step;
+        ty /= track_step;
+        points.push_back({ tx / static_cast<float>(width),
+                           ty / static_cast<float>(width) });
+    }
+
+    if (points.size() < 2) {
+        return false;
+    }
+
+    bool flag = true;
+    float lx = 0.f, ly = 0.f;
+
+    for (const auto& point : points) {
+        float bcx, bcy;
+        std::tie(bcx, bcy) = point;
+
+        if (up_side && (ly - bcy > -dist_min)) {
+            // up side entering
+        } else if (!up_side && (ly - bcy < dist_min )) {
+            // down side entering
+        } else if (abs(bcx - pcx) - abs(lx - pcx) < dist_min) {
+            // x side entering
+        } else {
+            flag = false;
+            break;
+        }
+        lx = bcx; ly = bcy;
+    }
+    return flag;
+}
+bool Tracker::isExiting(const Park& park, const Track& track) {
+    if (!assert_step(track)) {
+        return false;
+    }
+
+    std::vector<std::tuple<float, float>> points;
+    size_t size = track.boxes.size();
+    bool up_side = track.boxes.front().y < height / 2.f;
+    float pcx = (park.x + park.x2) / 2.f, pcy = (park.y + park.y2) / 2.f;
+
+    for (size_t index = 0; index + track_step < size; index += track_step) {
+        float tx = 0.f, ty = 0.f;
+        for (size_t j = index; j < index + track_step; j++) {
+            tx += (track.boxes[j].x + track.boxes[j].x2) * .5f;
+            ty += (track.boxes[j].y + track.boxes[j].y2) * .5f;
+        }
+        tx /= track_step;
+        ty /= track_step;
+        points.push_back({ tx / static_cast<float>(width), 
+                           ty / static_cast<float>(width) });
+    }
+
+    if (points.size() < 2) {
+        return false;
+    }
+
+    bool flag = true;
+    float lx = 0.f, ly = 0.f;
+    for (const auto& point : points) {
+        float bcx, bcy;
+        std::tie(bcx, bcy) = point;
+
+        if (!lx && !ly) {
+            lx = bcx; ly = bcy;
+        }
+
+        if (up_side && (ly - bcy < dist_min)) {
+            // up side exiting
+        } else if (!up_side && (ly - bcy > -dist_min)) {
+            // down side exiting
+        } else {
+            flag = false;
+            break;
+        }
+        lx = bcx; ly = bcy;
+    }
+    return flag;
 }
 
 LIB_TRACKING Tracker* _stdcall TrackerInit(int width, int height) {
@@ -161,7 +264,8 @@ LIB_TRACKING long _stdcall TrackerRelease(Tracker* AHandle) {
 LIB_TRACKING  long _stdcall TrackerSetParam(Tracker* AHandle,
                                             int width, int height,
                                             float sigma_l, float sigma_h, 
-                                            float sigma_iou, size_t t_min, size_t dist_min) {
+                                            float sigma_iou, int t_min,
+                                            float dist_min, int track_step) {
     AHandle->width = width;
     AHandle->height = height;
 
@@ -170,11 +274,12 @@ LIB_TRACKING  long _stdcall TrackerSetParam(Tracker* AHandle,
     AHandle->sigma_iou = sigma_iou;
     AHandle->t_min = t_min;
     AHandle->dist_min = dist_min;
+    AHandle->track_step = track_step;
     
     return 0;
 }
 
-LIB_TRACKING long _stdcall TrackerUpdate(Tracker* AHandle, const std::vector<Box>& boxes) {
+LIB_TRACKING long _stdcall TrackerUpdate(Tracker* AHandle, std::vector<Box>* boxes) {
     AHandle->update(boxes);
 
     return 0;
