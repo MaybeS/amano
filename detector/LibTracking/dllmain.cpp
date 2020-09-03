@@ -107,17 +107,25 @@ void Tracker::update(std::vector<Box>* detections) {
             // hard positive
             park.state = Park::State::parking;
         } else if (iou_min_thresh < max_iou) {
-            // weak positive
-            if (isExiting(park, *max_track)) {
-                park.state = Park::State::empty;
-                park.isExiting = true;
-                park.isEntering = false;
-            } else if (isEntering(park, *max_track)) {
-                park.state = Park::State::parking_invisible;
-                park.isExiting = false;
-                park.isEntering = true;
-            } else {
-                park.state = park.state;
+            // if pakring area cover track
+            if (max_track != nullptr) {
+                if (park.x <= max_track->boxes.back().x / static_cast<float>(width) && max_track->boxes.back().x2 / static_cast<float>(width) <= park.x2 &&
+                    park.y <= max_track->boxes.back().y / static_cast<float>(width) && max_track->boxes.back().y2 / static_cast<float>(width) <= park.y2) {
+                    park.state = Park::State::parking;
+                    park.isExiting = false;
+                    park.isEntering = false;
+                } else if (isExiting(park, *max_track)) {
+                    // weak positive
+                    park.state = Park::State::empty;
+                    park.isExiting = true;
+                    park.isEntering = false;
+                } else if (isEntering(park, *max_track)) {
+                    park.state = Park::State::parking_invisible;
+                    park.isExiting = false;
+                    park.isEntering = true;
+                } else {
+                    park.state = park.state;
+                }
             }
         } else {
             // not detected
