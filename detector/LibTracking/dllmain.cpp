@@ -70,7 +70,7 @@ void Tracker::update(std::vector<Box>* detections) {
         }
     }
 
-    for (auto detection : *detections) {
+    for (const auto& detection : *detections) {
         track_update.push_back(new Track{
             track_count++, {detection}, frame_count, detection.prob,
         });
@@ -137,7 +137,7 @@ void Tracker::update(std::vector<Box>* detections) {
 }
 
 void Tracker::finish() {
-    for (auto track : track_active) {
+    for (auto& track : track_active) {
         if (track->score >= sigma_h && track->boxes.size() > t_min) {
             track_finish.emplace_back(track);
         }
@@ -325,7 +325,7 @@ LIB_TRACKING long _stdcall TrackerViewParks(Tracker* AHandle, const std::functio
         f(park);
     }
 
-    return AHandle->parkings.size();
+    return static_cast<long>(AHandle->parkings.size());
 }
 
 LIB_TRACKING const std::vector<Park>& _stdcall TrackerParks(Tracker* AHandle) {
@@ -337,7 +337,7 @@ LIB_TRACKING long _stdcall TrackerViewTracks(Tracker* AHandle, const std::functi
         f(*track);
     }
 
-    return AHandle->track_active.size();
+    return static_cast<long>(AHandle->track_active.size());
 }
 
 LIB_TRACKING const std::vector<Track*>& _stdcall TrackerTracks(Tracker* AHandle) {

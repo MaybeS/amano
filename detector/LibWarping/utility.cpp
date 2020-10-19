@@ -40,7 +40,7 @@ void GetRotationMatrix(const T* rot, T* R) {
 void MakeImageRays(const Size& sz, float fov, float h_dir, float v_dir, bool upright, const float* rot, Mat* rays, float y_ratio) {
 	const double d2r = CV_PI / 180;
 	const float cx = sz.width / 2.f, cy = sz.height / 2.f;
-	const float ff = .5f * sz.width / tan(fov * d2r / 2);
+	const float ff = (.5f * (float)sz.width) / (float)tan(fov * d2r / 2);
 	const float h_rot[] = { 0.f, 0.f, static_cast<float>(h_dir * d2r) };
 	const float v_rot[] = { static_cast<float>((90 - v_dir) * d2r), 0.f, 0.f };
 	const float no_rot[] = { 0.f, 0.f, 0.f };
@@ -51,7 +51,7 @@ void MakeImageRays(const Size& sz, float fov, float h_dir, float v_dir, bool upr
 	GetRotationMatrix(h_rot, R_h);
 	if (upright) {
 		Multiply3x3(R_calib, R_h, R);
-		const float y_offset = tan(v_dir * d2r);
+		const float y_offset = static_cast<float>(tan(v_dir * d2r));
 		for (int y = 0; y < sz.height; ++y) {
 			for (int x = 0; x < sz.width; ++x) {
 				const float nx = (x - cx) / ff, ny = y_ratio * (y - cy) / ff + y_offset;

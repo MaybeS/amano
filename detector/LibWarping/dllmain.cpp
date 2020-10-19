@@ -9,7 +9,7 @@ Calibration::Calibration(const Size& input_sz) :
 	this->cx = input_sz.width / 2.f, this->cy = input_sz.height / 2.f;
 	this->k[0] = -.25f; this->k[1] = -.0; this->k[2] = -.0; this->k[3] = -.0; this->k[4] = -.0;
 	this->k[0] = .0715f;
-	this->k[1] = -.0715;
+	this->k[1] = -.0715f;
 	this->fisheye = true;
 }
 
@@ -34,9 +34,9 @@ void Calibration::ConvertRays2Pixels(const Mat& rays, Mat* pixels_x, Mat* pixels
 			for (int x = 0; x < sz.width; ++x) {
 				const float* ray = (const float*)rays.ptr(y, x);
 				float rx = ray[0], ry = ray[1], rz = ray[2];
-				float rn = sqrt(rx * rx + ry * ry + rz * rz) + 1e-12;
+				float rn = sqrt(rx * rx + ry * ry + rz * rz) + 1e-12f;
 				rx /= rn, ry /= rn, rz /= rn;
-				float rad = sqrt(rx * rx + ry * ry) + 1e-12;
+				float rad = sqrt(rx * rx + ry * ry) + 1e-12f;
 				float th = atan2(rad, rz);
 				th = th * (1 + th * (k[0] + th * k[1]));
 				float px = rx * th / rad, py = ry * th / rad;
@@ -77,7 +77,7 @@ void Calibration::Reset() {
 	this->cx = size.width / 2.f, this->cy = size.height / 2.f;
 	this->k[0] = -.25f; this->k[1] = -.0; this->k[2] = -.0; this->k[3] = -.0; this->k[4] = -.0;
 	this->k[0] = .0715f;
-	this->k[1] = -.0715;
+	this->k[1] = -.0715f;
 	this->fisheye = true;
 }
 

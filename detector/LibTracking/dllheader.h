@@ -11,6 +11,7 @@
 
 #ifdef BUILD_DLL
     #define LIB_TRACKING __declspec(dllexport)
+    #define DLLEXPORT_STRUCT
 #else
     #define LIB_TRACKING __declspec(dllimport)
 #endif
@@ -23,14 +24,19 @@ struct Box {
     unsigned int frames_counter;
 };
 
-struct LIB_TRACKING Track {
+DLLEXPORT_STRUCT struct LIB_TRACKING Track {
     int id;
-    std::vector<Box> boxes;
     int start;
     float score;
+    std::vector<Box> boxes;
+
+    Track()
+    : id(0), start(0), score(0.f) {}
+    Track(int id, const std::vector<Box>& boxes, int start, float score)
+    : id(id), boxes(boxes), start(start), score(score) {}
 };
 
-struct LIB_TRACKING Park {
+DLLEXPORT_STRUCT struct LIB_TRACKING Park {
     float x, y, x2, y2;
     enum class State {
         empty, parking, parking_invisible,
@@ -52,7 +58,7 @@ public:
     }
 };
 
-class LIB_TRACKING Tracker {
+DLLEXPORT_STRUCT class LIB_TRACKING Tracker {
 public:
     int width, height;
 
@@ -62,7 +68,6 @@ public:
     float iou_thresh = .45f;
     float iou_min_thresh = .04f;
     int track_step;
-
     std::vector<Track*> track_active, track_update, track_finish;
     std::vector<Park> parkings;
 

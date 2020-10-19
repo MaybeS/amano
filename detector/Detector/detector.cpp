@@ -64,7 +64,8 @@ char		g_ACognitiveUrl[256] = {0};
 BOOL		g_UnderFlip = FALSE;
 HWND		g_hWnd = nullptr;
 
-int detection_interval = 10;
+const int video_interval = 10;
+int detection_interval = 15;
 Tracker*	tracker = nullptr;
 BOOL		video_stop = TRUE;
 cv::VideoCapture capture;
@@ -254,7 +255,7 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 
 	ground_resized->copyTo(image_show);
 	if (results != nullptr) {
-		for (auto box : *results) {
+		for (const auto& box : *results) {
 			if (box.prob > .3f) {
 				cv::rectangle(image_show, {
 					static_cast<int>(box.x), static_cast<int>(box.y),
@@ -265,7 +266,7 @@ void redraw(HWND hWnd, bool inference = false, bool aspect = false) {
 	}
 
 	if (Yresults) {
-		for (auto box : *Yresults) {
+		for (const auto& box : *Yresults) {
 			cv::rectangle(image_show, {
 				static_cast<int>(box.x), static_cast<int>(box.y),
 				static_cast<int>(box.x2 - box.x), static_cast<int>(box.y2 - box.y),
@@ -636,7 +637,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				saveFile([&](const OPENFILENAMEA& saveFileDialog) {
 					std::ofstream out(saveFileDialog.lpstrFile);
 					if (out.is_open() && results != nullptr) {
-						for (auto box : *results) {
+						for (const auto& box : *results) {
 							out << std::fixed << box.prob
 								<< box.x << " " << box.y << " "
 								<< box.x2 << " " << box.y2 << std::endl;
@@ -891,9 +892,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (video_stop) {
 					KillTimer(hWnd, 0);
 					KillTimer(hWnd, 1);
-				}
-				else {
-					SetTimer(hWnd, 0, 5, NULL);
+				} else {
+					SetTimer(hWnd, 0, video_interval, NULL);
 					SetTimer(hWnd, 1, detection_interval, NULL);
 				}
 				break;
@@ -1172,7 +1172,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (g_Detector != nullptr && tracker != nullptr) {
 					auto detection_result = DetectorDetect(g_Detector, *ground_resized);
 					logger.write_detection([detection_result](std::ofstream& stream) {
-						for (auto box : *detection_result) {
+						for (const auto& box : *detection_result) {
 							stream << std::fixed << box.prob << " "
 								   << box.x << " " << box.y << " "
 								   << box.x2 << " " << box.y2 << std::endl;
@@ -1181,7 +1181,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					TrackerUpdate(tracker, detection_result);
 					auto tracks = TrackerTracks(tracker);
 					logger.write_tracking([&tracks](std::ofstream& stream) {
-						for (auto track : tracks) {
+						for (const auto& track : tracks) {
 							stream << std::fixed << track->id << " " << track->score << " " 
 								<< track->boxes.back().x << " " << track->boxes.back().y << " "
 								<< track->boxes.back().x2 << " " << track->boxes.back().y2 << std::endl;
@@ -1189,7 +1189,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					});
 					auto parks = TrackerParks(tracker);
 					logger.write_parking([&parks](std::ofstream& stream) {
-						for (auto park : parks) {
+						for (const auto& park : parks) {
 							stream << std::fixed
 								<< park.x << " " << park.y << " "
 								<< park.x2 << " " << park.y2 << " ";
